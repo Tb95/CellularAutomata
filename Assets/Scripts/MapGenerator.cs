@@ -38,9 +38,11 @@ public class MapGenerator : MonoBehaviour {
 	void Start () {
         if(map == null)
             GenerateMap();
+
+        InstantiatePlayer(spawnTile, is2D ? player2D : player3D);
 	}
 	
-	void GenerateMap () {
+	public void GenerateMap () {
         map = new int[width, height];
         RandomFillMap();
 
@@ -68,15 +70,13 @@ public class MapGenerator : MonoBehaviour {
         meshGen.GenerateMesh(borderedMap, squareSize, wallHeight, is2D);
 
         SetGroundPlane();
-
-        InstantiatePlayer(spawnTile, is2D ? player2D : player3D);
 	}
 
     void RandomFillMap()
     {
         if (randomSeed)
         {
-            seed = Time.time.ToString();
+            seed = System.DateTime.Now.GetHashCode().ToString();
         }
 
         System.Random randGen = new System.Random(seed.GetHashCode());
@@ -396,7 +396,10 @@ public class MapGenerator : MonoBehaviour {
     void InstantiatePlayer(Coord tile, GameObject playerPrefab)
     {
         if (player != null)
-            Destroy(player);
+            if(Application.isPlaying)
+                Destroy(player);
+            else
+                DestroyImmediate(player);
 
         player = Instantiate(playerPrefab, CoordToWorldPoint(tile), Quaternion.identity) as GameObject;
 

@@ -118,7 +118,21 @@ public class MeshGenerator : MonoBehaviour {
         wallMesh.RecalculateNormals();
         walls.mesh = wallMesh;
 
-        MeshCollider wallCollider = walls.gameObject.AddComponent<MeshCollider>();
+        Vector2[] uvs = new Vector2[wallVertices.Count];
+        for (int i = 0; i < wallVertices.Count; i+=4)
+        {
+            float leftX = 1f / textureRepeatAmount * (i / 4);
+            float rightX = 1f / textureRepeatAmount * ((i / 4) + 1);
+            uvs[i] = new Vector2(leftX, 1);             //left
+            uvs[i + 1] = new Vector2(rightX, 1);        //right
+            uvs[i + 2] = new Vector2(leftX, 0);         //bottomLeft
+            uvs[i + 3] = new Vector2(rightX, 0);        //bottomRight
+        }
+        wallMesh.uv = uvs;
+
+        MeshCollider wallCollider = walls.gameObject.GetComponent<MeshCollider>();
+        if(wallCollider == null)
+            wallCollider  = walls.gameObject.AddComponent<MeshCollider>();
         wallCollider.sharedMesh = wallMesh;
     }
 
