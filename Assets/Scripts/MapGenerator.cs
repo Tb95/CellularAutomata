@@ -2,6 +2,7 @@
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class MapGenerator : MonoBehaviour {
 
@@ -588,6 +589,11 @@ public class MapGenerator : MonoBehaviour {
         GameObject wall = Instantiate(spawnpointWall, pos, rot) as GameObject;
         wall.transform.parent = transform;
         wall.transform.localScale = new Vector3(0.01f, wallHeight, 3 * passagewayRadius); 
+    }
+
+    public List<Vector3> GetSpawnPoints()
+    {
+        return spawnPoints.Select(x => CoordToWorldPoint(x) - Vector3.up * wallHeight / 2).ToList<Vector3>();
     }
 
     class Room : IComparable<Room>
