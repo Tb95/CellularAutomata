@@ -25,15 +25,20 @@ public class MapGenerator : MonoBehaviour {
     public float squareSize;
     [Range(1, 100)]
     public float wallHeight;
+    [Range(0, 10)]
+    public int spawnPointNumber;
     public string seed;
     public bool randomSeed;
     public bool is2D;
     public GameObject player2D;
     public GameObject player3D;
+    public GameObject spawnpointWall;
 
     int[,] map;
     Coord spawnTile;
     GameObject player;
+    System.Random randGen;
+    List<Coord> spawnPoints;
 
 	void Start () {
         if(map == null)
@@ -52,7 +57,7 @@ public class MapGenerator : MonoBehaviour {
 		}
 
         ProcessMap();
-
+        
         int[,] borderedMap = new int[width + borderSize * 2, height + borderSize * 2];
 
         for (int x = 0; x < borderedMap.GetLength(0); x++)
@@ -79,13 +84,13 @@ public class MapGenerator : MonoBehaviour {
             seed = System.DateTime.Now.GetHashCode().ToString();
         }
 
-        System.Random randGen = new System.Random(seed.GetHashCode());
+        randGen = new System.Random(seed.GetHashCode());
 
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
             {
-                if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
+                if (x < borderSize || x > width - borderSize || y < borderSize || y > height - borderSize)
                 {
                     map[x, y] = 1;
                 }
@@ -226,6 +231,7 @@ public class MapGenerator : MonoBehaviour {
         spawnTile = rooms[0].RandomPointInside();
 
         ConnectClosestRooms(rooms);
+        CreateSpawnpoints(rooms);
     }
 
     void ConnectClosestRooms(List<Room> rooms, bool forceAccessibilityFromMainRoom = false)
@@ -305,6 +311,19 @@ public class MapGenerator : MonoBehaviour {
     {
         Room.ConnectRooms(roomA, roomB);
 
+        CreatePassage(tileA, tileB);
+    }    
+
+    void CreatePassage(Coord tileA, Coord tileB, List<Coord> line)
+    {
+        foreach (var tile in line)
+        {
+            DrawCircle(tile, passagewayRadius);
+        }
+    }
+
+    void CreatePassage(Coord tileA, Coord tileB)
+    {
         List<Coord> line = GetLine(tileA, tileB);
         foreach (var tile in line)
         {
@@ -380,12 +399,20 @@ public class MapGenerator : MonoBehaviour {
         return line;
     }
 
-    Vector3 CoordToWorldPoint(Coord tile)
+    public Vector3 CoordToWorldPoint(Coord tile)
     {
         if(!is2D)
             return new Vector3(-width / 2 + tile.tileX * squareSize + squareSize / 2, 0, -height / 2 + tile.tileY * squareSize + squareSize / 2);
         else
             return new Vector3(-width / 2 + tile.tileX * squareSize + squareSize / 2, -height / 2 + tile.tileY * squareSize + squareSize / 2, 0);
+    }
+
+    public Coord WorldToCoordPoint(Vector3 point)
+    {
+        if (!is2D)
+            return new Coord(Mathf.FloorToInt((point.x + width / 2 - squareSize / 2) / squareSize), Mathf.FloorToInt((point.z + height / 2 - squareSize / 2) / squareSize));
+        else
+            return new Coord(Mathf.FloorToInt((point.x + width / 2 - squareSize / 2) / squareSize), Mathf.FloorToInt((point.y + height / 2 - squareSize / 2) / squareSize));
     }
 
     bool IsInMap(int x, int y)
@@ -410,18 +437,157 @@ public class MapGenerator : MonoBehaviour {
     void SetGroundPlane()
     {
         Transform plane = transform.GetChild(2);
-        plane.localScale = new Vector3(width / 10.0f, 1, height / 10.0f);
+        plane.localScale = new Vector3((width + 2 * borderSize) / 10.0f, 1, (height + 2 * borderSize) / 10.0f);
 
         if (is2D)
         {
             plane.rotation = Quaternion.Euler(270, 0, 0);
-            plane.position = new Vector3(plane.position.x, plane.position.y, 1);
+            plane.position = new Vector3(0, 0, 1);
         }
         else
         {
-            plane.position = new Vector3(plane.position.x, -wallHeight, plane.position.z);
+            plane.position = new Vector3(0, -wallHeight, 0);
             plane.rotation = Quaternion.Euler(0, 0, 0);
         }
+    }
+
+    /*void OnDrawGizmos()
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                if (IsInMap(x, y))
+                {
+                    Gizmos.color = (map[x, y] == 1) ? Color.black : Color.white;
+                    Vector3 pos2 = new Vector3(-width / 2 + x + .5f + 120, 50, -height / 2 + y + .5f);
+                    Gizmos.DrawCube(pos2, Vector3.one);
+                }
+            }
+        }
+    }*/
+
+    void CreateSpawnpoints(List<Room> rooms)
+    {
+        foreach (var wall in GameObject.FindGameObjectsWithTag("SpawnpointWall"))
+        {
+            if(Application.isPlaying)
+                Destroy(wall);
+            else
+                DestroyImmediate(wall);
+        }
+
+        spawnPoints = new List<Coord>(spawnPointNumber);
+
+        for (int i = 0; i < spawnPointNumber; i++)
+        {
+            int x = randGen.Next(0, width);
+            int y = randGen.Next(0, height);
+
+            Coord spawnPoint = new Coord();
+            int randomSide = randGen.Next(0, 4);
+            if (randomSide == 0)
+                spawnPoint = new Coord(x, 0);
+            else if (randomSide == 1)
+                spawnPoint = new Coord(x, height - 1);
+            else if (randomSide == 2)
+                spawnPoint = new Coord(0, y);
+            else
+                spawnPoint = new Coord(width - 1, y);
+
+            if (!spawnPoints.Contains(spawnPoint))
+                spawnPoints.Add(spawnPoint);
+            else
+            {
+                i--;
+                continue;
+            }
+
+            Coord nearestPoint = new Coord();
+            float smallestDistance = 0;
+            foreach (var room in rooms)
+	        {
+                foreach (var tile in room.edgeTiles)
+                {
+                    float distance = Mathf.Pow(spawnPoint.tileX - tile.tileX, 2) +
+                        Mathf.Pow(spawnPoint.tileY - tile.tileY, 2);
+                    if (distance < smallestDistance || smallestDistance == 0)
+                    {
+                        smallestDistance = distance;
+                        nearestPoint = tile;
+                    }
+                }
+	        }
+
+            List<Coord> path = GetLine(spawnPoint, nearestPoint);
+
+            int l = path.Count;
+            if (l > 4)
+                InstantiateSpawnpointWallBetween(path[l - 3], path[l - 4]);
+            else if (l > 3)
+                InstantiateSpawnpointWallBetween(path[2], path[3]);
+            else if (l > 2)
+                InstantiateSpawnpointWallBetween(path[1], path[2]);
+            else if (l > 1)
+                InstantiateSpawnpointWallBetween(path[0], path[1]);
+            else
+                InstantiateSpawnpointWallBetween(spawnPoint, nearestPoint);
+
+            CreatePassage(spawnPoint, nearestPoint, path);
+        }
+    }
+
+    void InstantiateSpawnpointWallBetween(Coord tileA, Coord tileB)
+    {
+        Vector3 pos = new Vector3();
+        Quaternion rot = new Quaternion();
+
+        if (tileB.tileX == tileA.tileX + 1 && tileB.tileY == tileA.tileY)         //right
+        {
+            pos = CoordToWorldPoint(tileA) + new Vector3(squareSize / 2, -wallHeight / 2, 0);
+            rot = Quaternion.Euler(0, 0, 0);
+        }
+        else if (tileB.tileX == tileA.tileX - 1 && tileB.tileY == tileA.tileY)    //left
+        {
+            pos = CoordToWorldPoint(tileA) + new Vector3(-squareSize / 2, -wallHeight / 2, 0);
+            rot = Quaternion.Euler(0, 0, 0);
+        }
+        else if (tileB.tileX == tileA.tileX && tileB.tileY == tileA.tileY + 1)    //up
+        {
+            pos = CoordToWorldPoint(tileA) + new Vector3(0, -wallHeight / 2, squareSize / 2);
+            rot = Quaternion.Euler(0, 90, 0);
+        }
+        else if (tileB.tileX == tileA.tileX && tileB.tileY == tileA.tileY - 1)    //down
+        {
+            pos = CoordToWorldPoint(tileA) + new Vector3(0, -wallHeight / 2, -squareSize / 2);
+            rot = Quaternion.Euler(0, 90, 0);
+        }
+        else if (tileB.tileX == tileA.tileX + 1 && tileB.tileY == tileA.tileY + 1)         //up right
+        {
+            pos = CoordToWorldPoint(tileA) + new Vector3(squareSize / 2, -wallHeight / 2, squareSize / 2);
+            rot = Quaternion.Euler(0, -45, 0);
+        }
+        else if (tileB.tileX == tileA.tileX - 1 && tileB.tileY == tileA.tileY + 1)    //up left
+        {
+            pos = CoordToWorldPoint(tileA) + new Vector3(-squareSize / 2, -wallHeight / 2, squareSize / 2);
+            rot = Quaternion.Euler(0, 45, 0);
+        }
+        else if (tileB.tileX == tileA.tileX + 1 && tileB.tileY == tileA.tileY - 1)    //down right
+        {
+            pos = CoordToWorldPoint(tileA) + new Vector3(squareSize / 2, -wallHeight / 2, squareSize / 2);
+            rot = Quaternion.Euler(0, 45, 0);
+        }
+        else if (tileB.tileX == tileA.tileX - 1 && tileB.tileY == tileA.tileY - 1)    //down left
+        {
+            pos = CoordToWorldPoint(tileA) + new Vector3(-squareSize / 2, -wallHeight / 2, -squareSize / 2);
+            rot = Quaternion.Euler(0, -45, 0);
+        }
+        else
+            Debug.Log(tileB.tileX + ", " + tileB.tileY);
+
+        GameObject wall = Instantiate(spawnpointWall, pos, rot) as GameObject;
+        wall.transform.parent = transform;
+        wall.transform.localScale = new Vector3(0.01f, wallHeight, 3 * passagewayRadius); 
     }
 
     class Room : IComparable<Room>
@@ -500,7 +666,7 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
-    struct Coord
+    public struct Coord
     {
         public int tileX;
         public int tileY;

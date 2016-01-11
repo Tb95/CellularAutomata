@@ -53,11 +53,25 @@ public class MeshGenerator : MonoBehaviour {
 
         if (!is2D)
         {
+            EdgeCollider2D[] currentColliders = GetComponents<EdgeCollider2D>();
+            foreach (var collider in currentColliders)
+            {
+                if (Application.isPlaying)
+                    Destroy(collider);
+                else
+                    DestroyImmediate(collider);
+            }
+
             cave.transform.rotation = Quaternion.Euler(0, 0, 0);
             CreateWallMesh(wallHeight);
         }
         else
         {
+            walls.mesh = new Mesh();
+            MeshCollider wallCollider = walls.gameObject.GetComponent<MeshCollider>();
+            if (wallCollider != null)
+                wallCollider.sharedMesh = new Mesh();
+
             cave.transform.rotation = Quaternion.Euler(270, 0, 0);
             Generate2DColliders();
         }
@@ -68,7 +82,10 @@ public class MeshGenerator : MonoBehaviour {
         EdgeCollider2D[] currentColliders = GetComponents<EdgeCollider2D>();
         foreach (var collider in currentColliders)
         {
-            Destroy(collider);
+            if (Application.isPlaying)
+                Destroy(collider);
+            else
+                DestroyImmediate(collider);
         }
 
         CalculateMeshOutline();
