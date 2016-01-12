@@ -4,7 +4,7 @@ using System.Collections;
 
 public class PlayerHealth : MonoBehaviour {
 
-    [Range(1, 100)]
+    [Range(1, 1000)]
     public int maxHealth;
     public GameObject bloodImage;
     
@@ -40,7 +40,7 @@ public class PlayerHealth : MonoBehaviour {
         Vector3 randomPosition = new Vector3(Random.Range(0, Screen.width), Random.Range(0, Screen.height), 0);
         float randomRotation = Random.Range(0, 360f);
         RectTransform blood = (Instantiate(bloodImage) as GameObject).GetComponent<RectTransform>();
-        blood.transform.parent = HUD;
+        blood.transform.SetParent(HUD);
         blood.position = randomPosition;
         blood.rotation = Quaternion.Euler(0, 0, randomRotation);
         blood.GetComponent<BloodAlpha>().SetFade(((float) maxHealth - CurrentHealth) / maxHealth);

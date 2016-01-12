@@ -78,7 +78,7 @@ public class MapGenerator : MonoBehaviour {
         MeshGenerator meshGen = GetComponent<MeshGenerator>();
         meshGen.GenerateMesh(borderedMap, squareSize, wallHeight, is2D);
 
-        SetGroundPlane();
+        SetCeilingAndFloor();
 	}
 
     void RandomFillMap()
@@ -416,11 +416,11 @@ public class MapGenerator : MonoBehaviour {
     public Coord WorldToCoordPoint(Vector3 point)
     {
         if (!is2D)
-            return new Coord(Mathf.FloorToInt((point.x + (width * squareSize) / 2 - squareSize / 2) / squareSize),
-                Mathf.FloorToInt((point.z + (height * squareSize) / 2 - squareSize / 2) / squareSize));
+            return new Coord(Mathf.RoundToInt((point.x + (width * squareSize) / 2 - squareSize / 2) / squareSize),
+                Mathf.RoundToInt((point.z + (height * squareSize) / 2 - squareSize / 2) / squareSize));
         else
-            return new Coord(Mathf.FloorToInt((point.x + (width * squareSize) / 2 - squareSize / 2) / squareSize),
-                Mathf.FloorToInt((point.y + (height * squareSize) / 2 - squareSize / 2) / squareSize));
+            return new Coord(Mathf.RoundToInt((point.x + (width * squareSize) / 2 - squareSize / 2) / squareSize),
+                Mathf.RoundToInt((point.y + (height * squareSize) / 2 - squareSize / 2) / squareSize));
     }
 
     bool IsInMap(int x, int y)
@@ -436,7 +436,7 @@ public class MapGenerator : MonoBehaviour {
             else
                 DestroyImmediate(player);
 
-        player = Instantiate(playerPrefab, CoordToWorldPoint(tile), Quaternion.identity) as GameObject;
+        player = Instantiate(playerPrefab, CoordToWorldPoint(tile) + new Vector3(0, -wallHeight + 1, 0), Quaternion.identity) as GameObject;
 
         if (player.GetComponentInChildren<Camera>() != null && Camera.main != null && player.GetComponentInChildren<Camera>() != Camera.main)
             Camera.main.gameObject.SetActive(false);
@@ -444,20 +444,27 @@ public class MapGenerator : MonoBehaviour {
         Cursor.lockState = CursorLockMode.Locked;
     }
 
-    void SetGroundPlane()
+    void SetCeilingAndFloor()
     {
-        Transform plane = transform.FindChild("Plane");
-        plane.localScale = new Vector3((width + 2 * borderSize) / 10.0f, 1, (height + 2 * borderSize) / 10.0f) * squareSize;
+        Transform ceiling = transform.FindChild("Ceiling");
+        Transform floor = transform.FindChild("Floor");
+
+        ceiling.localScale = new Vector3((width + 2 * borderSize) / 10.0f, 1, (height + 2 * borderSize) / 10.0f) * squareSize;
+        floor.localScale = new Vector3((width + 2 * borderSize) / 10.0f, 1, (height + 2 * borderSize) / 10.0f) * squareSize;
 
         if (is2D)
         {
-            plane.rotation = Quaternion.Euler(270, 0, 0);
-            plane.position = new Vector3(0, 0, 1);
+            ceiling.rotation = Quaternion.Euler(270, 0, 0);
+            ceiling.position = new Vector3(0, 0, -10);
+            floor.rotation = Quaternion.Euler(270, 0, 0);
+            floor.position = new Vector3(0, 0, 1);
         }
         else
         {
-            plane.position = new Vector3(0, -wallHeight, 0);
-            plane.rotation = Quaternion.Euler(0, 0, 0);
+            ceiling.position = new Vector3(0, 0, 0);
+            ceiling.rotation = Quaternion.Euler(0, 0, 0);
+            floor.position = new Vector3(0, -wallHeight, 0);
+            floor.rotation = Quaternion.Euler(0, 0, 0);
         }
     }
 
@@ -586,7 +593,7 @@ public class MapGenerator : MonoBehaviour {
 
     public List<Vector3> GetSpawnPoints()
     {
-        return spawnPoints.Select(x => CoordToWorldPoint(x) - Vector3.up * wallHeight / 2).ToList<Vector3>();
+        return spawnPoints.Select(x => CoordToWorldPoint(x) + new Vector3(0, -wallHeight + 1, 0)).ToList<Vector3>();
     }
 
     class Room : IComparable<Room>
@@ -679,6 +686,11 @@ public class MapGenerator : MonoBehaviour {
         public override string ToString()
         {
             return "(" + tileX + ", " + tileY + ")";
+        }
+
+        public bool NextTo(Coord other)
+        {
+            return Math.Abs(this.tileX - other.tileX) <= 1 && Math.Abs(this.tileY - other.tileY) <= 1;
         }
     }
 }

@@ -10,8 +10,9 @@ namespace UnityStandardAssets.Utility
         const float fpsMeasurePeriod = 0.5f;
         private int m_FpsAccumulator = 0;
         private float m_FpsNextPeriod = 0;
+        private int m_FpsAverage = 0;
         private int m_CurrentFps;
-        const string display = "{0} FPS";
+        const string display = "{0} FPS, Average {1}";
         private Text m_Text;
 
 
@@ -27,11 +28,12 @@ namespace UnityStandardAssets.Utility
             // measure average frames per second
             m_FpsAccumulator++;
             if (Time.realtimeSinceStartup > m_FpsNextPeriod)
-            {
+            {                
                 m_CurrentFps = (int) (m_FpsAccumulator/fpsMeasurePeriod);
+                m_FpsAverage = Mathf.RoundToInt(0.875f * m_FpsAverage + 0.125f * m_CurrentFps);
                 m_FpsAccumulator = 0;
                 m_FpsNextPeriod += fpsMeasurePeriod;
-                m_Text.text = string.Format(display, m_CurrentFps);
+                m_Text.text = string.Format(display, m_CurrentFps, m_FpsAverage);
             }
         }
     }

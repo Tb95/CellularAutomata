@@ -57,6 +57,7 @@ public class EnemyController : MonoBehaviour {
             }
         }
     }
+    List<EnemyController> enemiesNearby;
 
     void Start()
     {
@@ -65,9 +66,13 @@ public class EnemyController : MonoBehaviour {
         animator = GetComponent<Animator>();
 
         CurrentState = State.Idle;
+        lastPathfindedPosition = target.transform.position;
+        nextStep = transform.position;
+
+        enemiesNearby = new List<EnemyController>();
 
         pathfinding = GameObject.FindGameObjectWithTag("Map").GetComponent<MapGenerator>().pathfinding;
-        Pathfind();
+        StartCoroutine(Pathfind());
     }
 
     void Update()
@@ -79,7 +84,7 @@ public class EnemyController : MonoBehaviour {
                     CurrentState = State.Attacking;
                 else if (ApproximatedDistance(lastPathfindedPosition, target.position) > pathfindingPrecision * pathfindingPrecision)
                 {
-                    Pathfind();
+                    StartCoroutine(Pathfind());
                     CurrentState = State.Moving;
                 }
                 break;
@@ -90,7 +95,7 @@ public class EnemyController : MonoBehaviour {
                 else
                 {
                     if (ApproximatedDistance(lastPathfindedPosition, target.position) > pathfindingPrecision * pathfindingPrecision)
-                        Pathfind();
+                        StartCoroutine(Pathfind());
 
                     if (ApproximatedDistance(nextStep, transform.position) < pathfollowingPrecision * pathfollowingPrecision)
                     {
@@ -117,7 +122,7 @@ public class EnemyController : MonoBehaviour {
                 {
                     if (approxDistance > 5 * attackRange * attackRange)
                     {
-                        Pathfind();
+                        StartCoroutine(Pathfind());
                         CurrentState = State.Moving;
                     }
                     else
@@ -136,15 +141,15 @@ public class EnemyController : MonoBehaviour {
                 break;
         }
 
-        if (path != null)
-        {
-            for (int i = 0; i < path.Count - 1; i++)
-            {
-                Debug.DrawLine(path[i], path[i + 1]);
-            }
-            Debug.DrawLine(nextStep + new Vector3(2.5f, 0, 2.5f), nextStep + new Vector3(-2.5f, 0, -2.5f), Color.red);
-            Debug.DrawLine(nextStep + new Vector3(2.5f, 0, -2.5f), nextStep + new Vector3(-2.5f, 0, 2.5f), Color.red);
-        }
+        //if (path != null)
+        //{
+        //    for (int i = 0; i < path.Count - 1; i++)
+        //    {
+        //        Debug.DrawLine(path[i], path[i + 1]);
+        //    }
+        //    Debug.DrawLine(nextStep + new Vector3(2.5f, 0, 2.5f), nextStep + new Vector3(-2.5f, 0, -2.5f), Color.red);
+        //    Debug.DrawLine(nextStep + new Vector3(2.5f, 0, -2.5f), nextStep + new Vector3(-2.5f, 0, 2.5f), Color.red);
+        //}
     }
 
     void FixedUpdate()
@@ -155,17 +160,48 @@ public class EnemyController : MonoBehaviour {
         }
     }
 
-    void Pathfind()
+    IEnumerator Pathfind()
     {
+        float waitSeconds = 5;
+        bool pathFound = false;
+
+        if (pathfinding.AreNeighbours(lastPathfindedPosition, target.position) && path != null)
+        {
+            path.Add(target.position);
+            pathFound = true;
+            waitSeconds = 0;
+        }
+
+        yield return new WaitForSeconds(Random.Range(0, waitSeconds));
+        
         lastPathfindedPosition = target.position;
 
         if (pathfinding == null)
         {
             pathfinding = GameObject.FindGameObjectWithTag("Map").GetComponent<MapGenerator>().pathfinding;
-            return;
+        }        
+
+        if(!pathFound)
+            foreach (var enemy in enemiesNearby)
+            {
+                if (enemy.lastPathfindedPosition == lastPathfindedPosition && enemy.path != null)
+                {
+                    path = new List<Vector3>();
+                    foreach (var pos in enemy.path)
+                    {
+                        path.Add(pos);
+                    }
+                    path.Reverse();
+                    pathFound = true;
+                    break;
+                }
+            }
+
+        if (!pathFound)
+        {
+            path = pathfinding.GetPath(transform.position, lastPathfindedPosition);
         }
 
-        path = pathfinding.GetPath(transform.position, lastPathfindedPosition);
         if (path != null && path.Count > 1)
         {
             CurrentState = State.Moving;
@@ -178,11 +214,30 @@ public class EnemyController : MonoBehaviour {
             path.RemoveAt(0);            
         }
         else
-            Debug.Log(path == null);
+        {
+            currentState = State.Idle;
+        }
     }
 
     float ApproximatedDistance(Vector3 a, Vector3 b)
     {
         return Mathf.Pow(a.x - b.x, 2) + Mathf.Pow(a.z - b.z, 2);
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.tag == "Enemy")
+            enemiesNearby.Add(other.GetComponent<EnemyController>());
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        if (other.gameObject.tag == "Enemy")
+            enemiesNearby.Remove(other.GetComponent<EnemyController>());
+    }
+
+    public bool IsAttacking()
+    {
+        return currentState == State.Attacking;
     }
 }

@@ -103,6 +103,13 @@ public class Pathfinding {
         nodeMap[tile.tileX, tile.tileY].SetCost(cost);
     }
 
+    public bool AreNeighbours(Vector3 a, Vector3 b)
+    {
+        MapGenerator.Coord tileA = mapGen.WorldToCoordPoint(a);
+        MapGenerator.Coord tileB = mapGen.WorldToCoordPoint(b);
+        return nodeMap[tileA.tileX, tileA.tileY].IsNeighbour(nodeMap[tileB.tileX, tileB.tileY]);
+    }
+
     class Node
     {
         Vector3 position;
@@ -231,6 +238,11 @@ public class Pathfinding {
         float RealDistance(Node a, Node b)
         {
             return (a.cost + b.cost) / 2;
+        }
+
+        public bool IsNeighbour(Node other)
+        {
+            return this.neighbours.Contains(other) || other.neighbours.Contains(this);
         }
     }
 }

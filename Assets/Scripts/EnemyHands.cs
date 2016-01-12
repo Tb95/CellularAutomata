@@ -4,15 +4,17 @@ using System.Collections;
 public class EnemyHands : MonoBehaviour {
 
     int damage;
+    EnemyController enemy;
 
     void Start()
     {
-        damage = GetComponentInParent<EnemyController>().damage;
+        enemy = GetComponentInParent<EnemyController>();
+        damage = enemy.damage;
     }
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.tag == "Player")
+        if (other.gameObject.tag == "Player" && enemy.IsAttacking())
         {
             other.GetComponent<PlayerHealth>().Hit(damage);
         }
