@@ -34,6 +34,7 @@ public class MapGenerator : MonoBehaviour {
     public GameObject player2D;
     public GameObject player3D;
     public GameObject spawnpointWall;
+    public Pathfinding pathfinding;
 
     int[,] map;
     Coord spawnTile;
@@ -44,6 +45,8 @@ public class MapGenerator : MonoBehaviour {
 	void Start () {
         if(map == null)
             GenerateMap();
+
+        pathfinding = new Pathfinding(map, this);
 
         InstantiatePlayer(spawnTile, is2D ? player2D : player3D);
 	}
@@ -119,7 +122,7 @@ public class MapGenerator : MonoBehaviour {
         }
     }
 
-    int NeighbouringWalls(int gridX, int gridY)
+    public int NeighbouringWalls(int gridX, int gridY)
     {
         int count = 0;
         for (int x = gridX - 1; x <= gridX + 1; x++)
@@ -403,17 +406,21 @@ public class MapGenerator : MonoBehaviour {
     public Vector3 CoordToWorldPoint(Coord tile)
     {
         if(!is2D)
-            return new Vector3(-width / 2 + tile.tileX * squareSize + squareSize / 2, 0, -height / 2 + tile.tileY * squareSize + squareSize / 2);
+            return new Vector3(-(width * squareSize) / 2 + tile.tileX * squareSize + squareSize / 2, 0,
+                -(height * squareSize) / 2 + tile.tileY * squareSize + squareSize / 2);
         else
-            return new Vector3(-width / 2 + tile.tileX * squareSize + squareSize / 2, -height / 2 + tile.tileY * squareSize + squareSize / 2, 0);
+            return new Vector3(-(width * squareSize) / 2 + tile.tileX * squareSize + squareSize / 2,
+                -(height * squareSize) / 2 + tile.tileY * squareSize + squareSize / 2, 0);
     }
 
     public Coord WorldToCoordPoint(Vector3 point)
     {
         if (!is2D)
-            return new Coord(Mathf.FloorToInt((point.x + width / 2 - squareSize / 2) / squareSize), Mathf.FloorToInt((point.z + height / 2 - squareSize / 2) / squareSize));
+            return new Coord(Mathf.FloorToInt((point.x + (width * squareSize) / 2 - squareSize / 2) / squareSize),
+                Mathf.FloorToInt((point.z + (height * squareSize) / 2 - squareSize / 2) / squareSize));
         else
-            return new Coord(Mathf.FloorToInt((point.x + width / 2 - squareSize / 2) / squareSize), Mathf.FloorToInt((point.y + height / 2 - squareSize / 2) / squareSize));
+            return new Coord(Mathf.FloorToInt((point.x + (width * squareSize) / 2 - squareSize / 2) / squareSize),
+                Mathf.FloorToInt((point.y + (height * squareSize) / 2 - squareSize / 2) / squareSize));
     }
 
     bool IsInMap(int x, int y)
@@ -433,12 +440,14 @@ public class MapGenerator : MonoBehaviour {
 
         if (player.GetComponentInChildren<Camera>() != null && Camera.main != null && player.GetComponentInChildren<Camera>() != Camera.main)
             Camera.main.gameObject.SetActive(false);
+
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     void SetGroundPlane()
     {
         Transform plane = transform.GetChild(2);
-        plane.localScale = new Vector3((width + 2 * borderSize) / 10.0f, 1, (height + 2 * borderSize) / 10.0f);
+        plane.localScale = new Vector3((width + 2 * borderSize) / 10.0f, 1, (height + 2 * borderSize) / 10.0f) * squareSize;
 
         if (is2D)
         {
@@ -451,22 +460,6 @@ public class MapGenerator : MonoBehaviour {
             plane.rotation = Quaternion.Euler(0, 0, 0);
         }
     }
-
-    /*void OnDrawGizmos()
-    {
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                if (IsInMap(x, y))
-                {
-                    Gizmos.color = (map[x, y] == 1) ? Color.black : Color.white;
-                    Vector3 pos2 = new Vector3(-width / 2 + x + .5f + 120, 50, -height / 2 + y + .5f);
-                    Gizmos.DrawCube(pos2, Vector3.one);
-                }
-            }
-        }
-    }*/
 
     void CreateSpawnpoints(List<Room> rooms)
     {
@@ -588,7 +581,7 @@ public class MapGenerator : MonoBehaviour {
 
         GameObject wall = Instantiate(spawnpointWall, pos, rot) as GameObject;
         wall.transform.parent = transform;
-        wall.transform.localScale = new Vector3(0.01f, wallHeight, 3 * passagewayRadius); 
+        wall.transform.localScale = new Vector3(0.01f, wallHeight, 3 * passagewayRadius * squareSize); 
     }
 
     public List<Vector3> GetSpawnPoints()
@@ -681,6 +674,11 @@ public class MapGenerator : MonoBehaviour {
         {
             this.tileX = tileX;
             this.tileY = tileY;
+        }
+
+        public override string ToString()
+        {
+            return "(" + tileX + ", " + tileY + ")";
         }
     }
 }

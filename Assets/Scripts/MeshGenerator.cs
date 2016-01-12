@@ -138,8 +138,8 @@ public class MeshGenerator : MonoBehaviour {
         Vector2[] uvs = new Vector2[wallVertices.Count];
         for (int i = 0; i < wallVertices.Count; i+=4)
         {
-            float leftX = 1f / textureRepeatAmount * (i / 4);
-            float rightX = 1f / textureRepeatAmount * ((i / 4) + 1);
+            float leftX = squareGrid.squareSize / textureRepeatAmount * (i / 4);
+            float rightX = squareGrid.squareSize / textureRepeatAmount * ((i / 4) + 1);
             uvs[i] = new Vector2(leftX, 1);             //left
             uvs[i + 1] = new Vector2(rightX, 1);        //right
             uvs[i + 2] = new Vector2(leftX, 0);         //bottomLeft
@@ -422,9 +422,12 @@ public class MeshGenerator : MonoBehaviour {
     public class SquareGrid
     {
         public Square[,] squares;
+        public float squareSize;
 
         public SquareGrid(int[,] map, float squareSize)
         {
+            this.squareSize = squareSize;
+
             int nodeCountX = map.GetLength(0);
             int nodeCountY = map.GetLength(1);
             float mapWidth = nodeCountX * squareSize;

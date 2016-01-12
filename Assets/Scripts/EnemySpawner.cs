@@ -7,12 +7,13 @@ public class EnemySpawner : MonoBehaviour {
     public GameObject[] enemies;
     [Range(0, 10)]
     public float secondsBetweenSpawn;
+    public bool spawnEnemies;
 
     List<Vector3> spawnPoints;
     float time;
 
 	void Start () {
-        spawnPoints = GetComponent<MapGenerator>().GetSpawnPoints();
+        spawnPoints = GameObject.FindGameObjectWithTag("Map").GetComponent<MapGenerator>().GetSpawnPoints();
         time = 0;
 	}
 	
@@ -21,7 +22,8 @@ public class EnemySpawner : MonoBehaviour {
 
         if (time > secondsBetweenSpawn)
         {
-            SpawnEnemy();
+            if(spawnEnemies)
+                SpawnEnemy();
             time = 0;
         }
 	}
@@ -30,6 +32,7 @@ public class EnemySpawner : MonoBehaviour {
     {
         Vector3 spawnPos = spawnPoints[Random.Range(0, spawnPoints.Count)];
         GameObject enemy = enemies[Random.Range(0, enemies.Length)];
-        Instantiate(enemy, spawnPos, Quaternion.identity);
+        GameObject instantiatedEnemy = Instantiate(enemy, spawnPos, Quaternion.identity) as GameObject;
+        instantiatedEnemy.transform.parent = transform;
     }
 }

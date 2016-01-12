@@ -857,14 +857,14 @@ ModelImporter:
       name: Idle2
       takeName: Take 001
       firstFrame: 460
-      lastFrame: 568
+      lastFrame: 567
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
+      loopTime: 1
       loopBlend: 0
       loopBlendOrientation: 0
       loopBlendPositionY: 0
@@ -2517,14 +2517,14 @@ ModelImporter:
       name: SwingQuick
       takeName: Take 001
       firstFrame: 1103
-      lastFrame: 1143
+      lastFrame: 1142
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
+      loopTime: 1
       loopBlend: 0
       loopBlendOrientation: 0
       loopBlendPositionY: 0
@@ -2849,14 +2849,14 @@ ModelImporter:
       name: Walk02
       takeName: Take 001
       firstFrame: 1175
-      lastFrame: 1204
+      lastFrame: 1203
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
+      loopTime: 1
       loopBlend: 0
       loopBlendOrientation: 0
       loopBlendPositionY: 0
