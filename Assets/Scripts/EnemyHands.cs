@@ -3,9 +3,18 @@ using System.Collections;
 
 public class EnemyHands : MonoBehaviour {
 
+    int damage;
+
+    void Start()
+    {
+        damage = GetComponentInParent<EnemyController>().damage;
+    }
+
     void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.tag == "Player")
-            Debug.Log("Hit player");
+        {
+            other.GetComponent<PlayerHealth>().Hit(damage);
+        }
     }
 }

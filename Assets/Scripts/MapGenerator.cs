@@ -446,7 +446,7 @@ public class MapGenerator : MonoBehaviour {
 
     void SetGroundPlane()
     {
-        Transform plane = transform.GetChild(2);
+        Transform plane = transform.FindChild("Plane");
         plane.localScale = new Vector3((width + 2 * borderSize) / 10.0f, 1, (height + 2 * borderSize) / 10.0f) * squareSize;
 
         if (is2D)

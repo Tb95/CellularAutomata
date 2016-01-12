@@ -14,6 +14,8 @@ public class EnemyController : MonoBehaviour {
     public float pathfollowingPrecision;
     [Range(0, 5)]
     public float attackRange;
+    [Range(0, 100)]
+    public int damage;
 
     Transform target;
     Rigidbody myRigidbody;
