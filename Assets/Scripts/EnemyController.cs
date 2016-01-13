@@ -2,8 +2,11 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class EnemyController : MonoBehaviour {
+public class EnemyController : MonoBehaviour
+{
 
+    #region variables
+    public string type;
     [Range(0, 100)]
     public float speed;
     [Range(0, 100)]
@@ -16,6 +19,9 @@ public class EnemyController : MonoBehaviour {
     public float attackRange;
     [Range(0, 100)]
     public int damage;
+    [Range(1, 100)]
+    public int health;
+    public bool drawPath;
 
     Transform target;
     Rigidbody myRigidbody;
@@ -25,6 +31,9 @@ public class EnemyController : MonoBehaviour {
     Vector3 lastPathfindedPosition;
     Vector3 nextStep;
     Animator animator;
+    EnemySpawner spawner;
+    int currentHealth;
+
     enum State
     {
         Moving,
@@ -58,8 +67,14 @@ public class EnemyController : MonoBehaviour {
         }
     }
     List<EnemyController> enemiesNearby;
+    #endregion
 
     void Start()
+    {
+        Initialize();
+    }
+
+    public void Initialize()
     {
         target = GameObject.FindGameObjectWithTag("Player").transform;
         myRigidbody = GetComponent<Rigidbody>();
@@ -70,6 +85,8 @@ public class EnemyController : MonoBehaviour {
         nextStep = transform.position;
 
         enemiesNearby = new List<EnemyController>();
+
+        currentHealth = health;
 
         pathfinding = GameObject.FindGameObjectWithTag("Map").GetComponent<MapGenerator>().pathfinding;
         StartCoroutine(Pathfind());
@@ -104,6 +121,8 @@ public class EnemyController : MonoBehaviour {
                             nextStep = path[0];
                             path.RemoveAt(0);
                         }
+                        else if (ApproximatedDistance(transform.position, target.position) < 5 * attackRange * attackRange)
+                            nextStep = target.position;
                         else
                             CurrentState = State.Idle;
                     }
@@ -112,7 +131,8 @@ public class EnemyController : MonoBehaviour {
                 velocity = nextStep - transform.position;
                 velocity.y = 0;
                 velocity = velocity.normalized * speed;
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(velocity), rotationSpeed * Time.deltaTime);
+                if(velocity.magnitude != 0)
+                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(velocity), rotationSpeed * Time.deltaTime);
                 break;
 
             case State.Attacking:
@@ -141,15 +161,15 @@ public class EnemyController : MonoBehaviour {
                 break;
         }
 
-        //if (path != null)
-        //{
-        //    for (int i = 0; i < path.Count - 1; i++)
-        //    {
-        //        Debug.DrawLine(path[i], path[i + 1]);
-        //    }
-        //    Debug.DrawLine(nextStep + new Vector3(2.5f, 0, 2.5f), nextStep + new Vector3(-2.5f, 0, -2.5f), Color.red);
-        //    Debug.DrawLine(nextStep + new Vector3(2.5f, 0, -2.5f), nextStep + new Vector3(-2.5f, 0, 2.5f), Color.red);
-        //}
+        if (drawPath && path != null && path.Count > 0)
+        {
+            for (int i = 0; i < path.Count - 1; i++)
+            {
+                Debug.DrawLine(path[i], path[i + 1]);
+            }
+            Debug.DrawLine(nextStep + new Vector3(2.5f, 0, 2.5f), nextStep + new Vector3(-2.5f, 0, -2.5f), Color.red);
+            Debug.DrawLine(nextStep + new Vector3(2.5f, 0, -2.5f), nextStep + new Vector3(-2.5f, 0, 2.5f), Color.red);
+        }
     }
 
     void FixedUpdate()
@@ -239,5 +259,18 @@ public class EnemyController : MonoBehaviour {
     public bool IsAttacking()
     {
         return currentState == State.Attacking;
+    }
+
+    public void SetSpawner(EnemySpawner spawner)
+    {
+        this.spawner = spawner;
+    }
+
+    public void Hit(int damage)
+    {
+        currentHealth -= damage;
+
+        if (currentHealth <= 0)
+            spawner.DiedEnemy(this.gameObject);
     }
 }

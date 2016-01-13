@@ -16,7 +16,7 @@ public class EnemyHands : MonoBehaviour {
     {
         if (other.gameObject.tag == "Player" && enemy.IsAttacking())
         {
-            other.GetComponent<PlayerHealth>().Hit(damage);
+            other.GetComponent<Player3D>().Hit(damage);
         }
     }
 }

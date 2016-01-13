@@ -3,11 +3,13 @@ using System.Collections;
 
 public class Player2D : MonoBehaviour
 {
+    #region variables
     [Range(1, 100)]
     public float speed;
 
     Rigidbody2D myRigidbody;
     Vector2 velocity;
+    #endregion
 
     void Start()
     {

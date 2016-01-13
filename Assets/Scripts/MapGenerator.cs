@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public class MapGenerator : MonoBehaviour {
+public class MapGenerator : MonoBehaviour
+{
 
+    #region variables
     [Range(0, 1000)]
     public int width;
     [Range(0, 1000)]
@@ -41,12 +43,11 @@ public class MapGenerator : MonoBehaviour {
     GameObject player;
     System.Random randGen;
     List<Coord> spawnPoints;
+#endregion
 
 	void Start () {
         if(map == null)
             GenerateMap();
-
-        pathfinding = new Pathfinding(map, this);
 
         InstantiatePlayer(spawnTile, is2D ? player2D : player3D);
 	}
@@ -234,14 +235,19 @@ public class MapGenerator : MonoBehaviour {
 
         spawnTile = rooms[0].RandomPointInside();
 
-        ConnectClosestRooms(rooms);
-        CreateSpawnpoints(rooms);
+        List<Passage> passages = ConnectClosestRooms(rooms);
+        passages = passages.Concat(CreateSpawnpoints(rooms)).ToList();
+
+        pathfinding = new Pathfinding(map, this, rooms);
     }
 
-    void ConnectClosestRooms(List<Room> rooms, bool forceAccessibilityFromMainRoom = false)
+    List<Passage> ConnectClosestRooms(List<Room> rooms, List<Passage> passages = null, bool forceAccessibilityFromMainRoom = false)
     {
         List<Room> roomListA = new List<Room>();
         List<Room> roomListB = new List<Room>();
+
+        if(passages == null)
+            passages = new List<Passage>();
 
         if(forceAccessibilityFromMainRoom){
             foreach (var room in rooms)
@@ -297,46 +303,54 @@ public class MapGenerator : MonoBehaviour {
             }
 
             if (possibleConnectionFound && !forceAccessibilityFromMainRoom)
-                CreatePassage(bestRoomA, bestRoomB, bestTileA, bestTileB);
+                passages.Add(CreatePassage(bestRoomA, bestRoomB, bestTileA, bestTileB));
         }
 
         if (possibleConnectionFound && forceAccessibilityFromMainRoom)
         {
-            CreatePassage(bestRoomA, bestRoomB, bestTileA, bestTileB);
-            ConnectClosestRooms(rooms, true);
+            passages.Add(CreatePassage(bestRoomA, bestRoomB, bestTileA, bestTileB));
+            return ConnectClosestRooms(rooms, passages, true);
         }
             
 
         if (!forceAccessibilityFromMainRoom)
-            ConnectClosestRooms(rooms, true);
+            return ConnectClosestRooms(rooms, passages, true);
+
+        return passages;
     }
 
-    void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
+    Passage CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
-        Room.ConnectRooms(roomA, roomB);
+        Passage passage = CreatePassage(tileA, tileB);
 
-        CreatePassage(tileA, tileB);
+        Room.ConnectRooms(roomA, roomB, passage);
+
+        return passage;
     }    
 
-    void CreatePassage(Coord tileA, Coord tileB, List<Coord> line)
+    Passage CreatePassage(Coord tileA, Coord tileB, List<Coord> line)
     {
+        List<Coord> tiles = new List<Coord>();
+
         foreach (var tile in line)
         {
-            DrawCircle(tile, passagewayRadius);
+            tiles = tiles.Concat(DrawCircle(tile, passagewayRadius)).ToList();
         }
+
+        return new Passage(tileA, tileB, tiles);
     }
 
-    void CreatePassage(Coord tileA, Coord tileB)
+    Passage CreatePassage(Coord tileA, Coord tileB)
     {
         List<Coord> line = GetLine(tileA, tileB);
-        foreach (var tile in line)
-        {
-            DrawCircle(tile, passagewayRadius);
-        }
+
+        return CreatePassage(tileA, tileB, line);
     }
 
-    void DrawCircle(Coord tile, int radius)
+    List<Coord> DrawCircle(Coord tile, int radius)
     {
+        List<Coord> circle = new List<Coord>();
+
         for (int x = -radius; x <= radius; x++)
         {
             for (int y = -radius; y < radius; y++)
@@ -346,10 +360,15 @@ public class MapGenerator : MonoBehaviour {
                     int realX = tile.tileX + x;
                     int realY = tile.tileY + y;
                     if (IsInMap(realX, realY))
+                    {
                         map[realX, realY] = 0;
+                        circle.Add(new Coord(realX, realY));
+                    }
                 }
             }
         }
+
+        return circle;
     }
 
     List<Coord> GetLine(Coord start, Coord end)
@@ -462,14 +481,16 @@ public class MapGenerator : MonoBehaviour {
         else
         {
             ceiling.position = new Vector3(0, 0, 0);
-            ceiling.rotation = Quaternion.Euler(0, 0, 0);
+            ceiling.rotation = Quaternion.Euler(0, 0, 180);
             floor.position = new Vector3(0, -wallHeight, 0);
             floor.rotation = Quaternion.Euler(0, 0, 0);
         }
     }
 
-    void CreateSpawnpoints(List<Room> rooms)
+    List<Passage> CreateSpawnpoints(List<Room> rooms)
     {
+        List<Passage> passages = new List<Passage>();
+
         foreach (var wall in GameObject.FindGameObjectsWithTag("SpawnpointWall"))
         {
             if(Application.isPlaying)
@@ -505,6 +526,7 @@ public class MapGenerator : MonoBehaviour {
             }
 
             Coord nearestPoint = new Coord();
+            Room nearestRoom = new Room();
             float smallestDistance = 0;
             foreach (var room in rooms)
 	        {
@@ -516,6 +538,7 @@ public class MapGenerator : MonoBehaviour {
                     {
                         smallestDistance = distance;
                         nearestPoint = tile;
+                        nearestRoom = room;
                     }
                 }
 	        }
@@ -534,8 +557,12 @@ public class MapGenerator : MonoBehaviour {
             else
                 InstantiateSpawnpointWallBetween(spawnPoint, nearestPoint);
 
-            CreatePassage(spawnPoint, nearestPoint, path);
+            Passage passage = CreatePassage(spawnPoint, nearestPoint, path);
+            passages.Add(passage);
+            nearestRoom.AddPassage(passage);
         }
+
+        return passages;
     }
 
     void InstantiateSpawnpointWallBetween(Coord tileA, Coord tileB)
@@ -596,11 +623,12 @@ public class MapGenerator : MonoBehaviour {
         return spawnPoints.Select(x => CoordToWorldPoint(x) + new Vector3(0, -wallHeight + 1, 0)).ToList<Vector3>();
     }
 
-    class Room : IComparable<Room>
+    public class Room : IComparable<Room>
     {
         public List<Coord> tiles;
         public List<Coord> edgeTiles;
         public List<Room> connectedRooms;
+        public List<Passage> passages;
         public int size;
         public bool isAccessibleFromMainRoom;
         public bool isMainRoom;
@@ -613,6 +641,7 @@ public class MapGenerator : MonoBehaviour {
             this.size = tiles.Count;
             this.edgeTiles = new List<Coord>();
             this.connectedRooms = new List<Room>();
+            this.passages = new List<Passage>();
             this.isAccessibleFromMainRoom = false;
             this.isMainRoom = false;
 
@@ -629,10 +658,13 @@ public class MapGenerator : MonoBehaviour {
             }
         }
 
-        public static void ConnectRooms(Room roomA, Room roomB)
+        public static void ConnectRooms(Room roomA, Room roomB, Passage passage)
         {
             roomA.connectedRooms.Add(roomB);
             roomB.connectedRooms.Add(roomA);
+
+            roomA.passages.Add(passage);
+            roomB.passages.Add(passage);
 
             if (roomA.isAccessibleFromMainRoom)
                 roomB.SetAccessibleFromMainRoom();
@@ -670,6 +702,11 @@ public class MapGenerator : MonoBehaviour {
         {
             return other.size.CompareTo(this.size);
         }
+
+        public void AddPassage(Passage passage)
+        {
+            passages.Add(passage);
+        }
     }
 
     public struct Coord
@@ -692,5 +729,19 @@ public class MapGenerator : MonoBehaviour {
         {
             return Math.Abs(this.tileX - other.tileX) <= 1 && Math.Abs(this.tileY - other.tileY) <= 1;
         }
+    }
+
+    public class Passage
+    {
+        public Coord startTile;
+        public Coord endTile;
+        public List<Coord> tiles;
+
+        public Passage(Coord start, Coord end, List<Coord> tiles)
+        {
+            this.startTile = start;
+            this.endTile = end;
+            this.tiles = tiles;
+        }        
     }
 }

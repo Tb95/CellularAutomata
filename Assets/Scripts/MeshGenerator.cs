@@ -2,8 +2,10 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class MeshGenerator : MonoBehaviour {
+public class MeshGenerator : MonoBehaviour
+{
 
+    #region variables
     public SquareGrid squareGrid;
     public MeshFilter walls;
     public MeshFilter cave;
@@ -15,6 +17,7 @@ public class MeshGenerator : MonoBehaviour {
     Dictionary<int, List<Triangle>> triangleDictionary = new Dictionary<int, List<Triangle>>();
     List<List<int>> outlines = new List<List<int>>();
     HashSet<int> checkedVertices = new HashSet<int>();
+    #endregion
 
     public void GenerateMesh(int[,] map, float squareSize, float wallHeight, bool is2D)
     {

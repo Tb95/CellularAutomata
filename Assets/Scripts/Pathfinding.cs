@@ -3,16 +3,19 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-public class Pathfinding {
+public class Pathfinding
+{
 
+    #region variables
     Node[,] nodeMap;
     MapGenerator mapGen;
+    #endregion
 
-    public Pathfinding(int[,] map, MapGenerator mapGen)
+    public Pathfinding(int[,] map, MapGenerator mapGen, List<MapGenerator.Room> rooms)
     {
         this.mapGen = mapGen;
-
         nodeMap = new Node[map.GetLength(0), map.GetLength(1)];
+
         for (int x = 0; x < map.GetLength(0); x++)
         {
             for (int y = 0; y < map.GetLength(1); y++)
@@ -165,8 +168,9 @@ public class Pathfinding {
 
                 if (currentNode == end)
                 {
-                    List<Vector3> path = ReconstructPath(cameFrom, end);
+                    List<Vector3> path = ReconstructPath(cameFrom, end, new List<Vector3>());
                     cache[end] = path;
+                    //end.cache[this] = path.AsEnumerable().Reverse().ToList();
                     return path;
                 }
 
@@ -195,12 +199,6 @@ public class Pathfinding {
                                 continue;
                             else
                                 openSet.Remove(neighbour);
-
-                            /*float my_f_score = tentative_g_score + heuristicDistance(neighbour, end);
-                            List<Node> beforeList = openSet.TakeWhile(node => f_score[node] < my_f_score).ToList();
-                            List<Node> afterList = openSet.SkipWhile(node => f_score[node] < my_f_score).ToList();
-                            beforeList.Add(neighbour);
-                            openSet = beforeList.Concat(afterList).ToList();*/
                         }
 
                         cameFrom[neighbour] = currentNode;
@@ -218,21 +216,33 @@ public class Pathfinding {
 
         float heuristicDistance(Node a, Node b)
         {
-            return Mathf.Pow(a.position.x - b.position.x, 2) + Mathf.Pow(a.position.z - b.position.z, 2);
+            //Octagonal approximation
+            float dx = Mathf.Abs(a.position.x - b.position.x);
+            float dy = Mathf.Abs(a.position.z - b.position.z);
+
+            float max = Mathf.Max(dx, dy);
+            float min = Mathf.Min(dx, dy);
+
+            const float A = 1007f / 1024f;
+            const float B = 441f / 1024f;
+            
+            return A * max + B * min;
         }
 
-        List<Vector3> ReconstructPath(Dictionary<Node, Node> cameFrom, Node end)
+        List<Vector3> ReconstructPath(Dictionary<Node, Node> cameFrom, Node end, List<Vector3> currentPath)
         {
             Vector3 pos = end.position;
-            List<Vector3> result;
+
+            currentPath.Insert(0, pos);
 
             if (cameFrom.ContainsKey(end))
-                result = ReconstructPath(cameFrom, cameFrom[end]);
+            {
+                Node previous = cameFrom[end];
+                previous.cache[end] = currentPath;
+                return ReconstructPath(cameFrom, previous, currentPath);
+            }
             else
-                result = new List<Vector3>();
-            result.Add(pos);
-
-            return result;
+                return currentPath;
         }
 
         float RealDistance(Node a, Node b)
