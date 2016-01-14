@@ -9,27 +9,27 @@ public class MapGenerator : MonoBehaviour
 
     #region variables
     [Range(0, 1000)]
-    public int width;
+    public int width = 50;
     [Range(0, 1000)]
-    public int height;
+    public int height = 50;
     [Range(0, 100)]
-    public float fillPercentage;
+    public float fillPercentage = 50;
     [Range(0, 10)]
-    public int smoothAmount;
+    public int smoothAmount = 5;
     [Range(0, 10)]
-    public int borderSize;
+    public int borderSize = 3;
     [Range(0, 100)]
-    public int smallestWallRegion;
+    public int smallestWallRegion = 30;
     [Range(0, 100)]
-    public int smallestRoomRegion;
+    public int smallestRoomRegion = 30;
     [Range(1, 5)]
-    public int passagewayRadius;
+    public int passagewayRadius = 2;
     [Range(1, 100)]
-    public float squareSize;
+    public float squareSize = 1;
     [Range(1, 100)]
-    public float wallHeight;
+    public float wallHeight = 5;
     [Range(0, 10)]
-    public int spawnPointNumber;
+    public int spawnPointNumber = 3;
     public string seed;
     public bool randomSeed;
     public bool is2D;

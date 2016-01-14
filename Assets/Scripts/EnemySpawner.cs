@@ -53,7 +53,7 @@ public class EnemySpawner : MonoBehaviour
         if (currentEnemies < maxEnemies)
         {
             Vector3 spawnPos = spawnPoints[Random.Range(0, spawnPoints.Count)];
-            int index = Random.Range(0, enemies.Length);
+            int index = Random.Range(0, reusableEnemies.Length);
 
             GameObject instantiatedEnemy;
             if (reusableEnemies[index].Count > 0)

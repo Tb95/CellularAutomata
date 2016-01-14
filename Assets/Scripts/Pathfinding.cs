@@ -9,12 +9,16 @@ public class Pathfinding
     #region variables
     Node[,] nodeMap;
     MapGenerator mapGen;
+    static int maxId;
     #endregion
 
     public Pathfinding(int[,] map, MapGenerator mapGen, List<MapGenerator.Room> rooms)
     {
         this.mapGen = mapGen;
         nodeMap = new Node[map.GetLength(0), map.GetLength(1)];
+
+        int id = 0;
+        maxId = map.GetLength(0) * map.GetLength(1);
 
         for (int x = 0; x < map.GetLength(0); x++)
         {
@@ -25,12 +29,13 @@ public class Pathfinding
                 if (map[x, y] == 0)
                 {
                     if (mapGen.NeighbouringWalls(x, y) > 0)
-                        cost = 30;
+                        cost = 5;
                     else
                         cost = 1;
                 }
 
-                nodeMap[x, y] = new Node(cost, mapGen.CoordToWorldPoint(new MapGenerator.Coord(x, y)));
+                nodeMap[x, y] = new Node(cost, mapGen.CoordToWorldPoint(new MapGenerator.Coord(x, y)), id);
+                id++;
             }
         }
 
@@ -97,7 +102,12 @@ public class Pathfinding
         Node startNode = nodeMap[start.tileX, start.tileY];
         Node endNode = nodeMap[end.tileX, end.tileY];
 
-        return startNode.FindPathTo(endNode);
+        List<Vector3> path = new List<Vector3>();
+        System.Threading.Thread newThread = new System.Threading.Thread(() => path = startNode.FindPathTo(endNode));
+        newThread.Start();
+        newThread.Join();
+
+        return path;
     }
 
     public void SetCost(Vector3 position, int cost)
@@ -115,16 +125,20 @@ public class Pathfinding
 
     class Node
     {
+        int id;
+        public int Id
+        {
+            get { return id; }
+        }
         Vector3 position;
         int cost;
         Node[] neighbours;
-        Dictionary<Node, List<Vector3>> cache;
 
-        public Node(int cost, Vector3 position)
+        public Node(int cost, Vector3 position, int id)
         {
             this.position = position;
             this.cost = cost;
-            this.cache = new Dictionary<Node, List<Vector3>>();
+            this.id = id;
         }
 
         public void SetNeighbours(Node[] neighbours)
@@ -135,53 +149,45 @@ public class Pathfinding
         public void SetCost(int cost)
         {
             this.cost = cost;
-            this.FreeCache();
+            //this.FreeCache();
         }
 
-        public void FreeCache()
+        /*public void FreeCache()
         {
             this.cache.Clear();
             foreach (var node in neighbours)
             {
                 node.FreeCache();
             }
-        }
+        }*/
 
         public List<Vector3> FindPathTo(Node end)
         {
-            if (cache.ContainsKey(end))
-                return cache[end];
-
-            List<Node> closedSet = new List<Node>();
-            List<Node> openSet = new List<Node>();
-            Dictionary<Node, float> g_score = new Dictionary<Node, float>();
-            Dictionary<Node, float> f_score = new Dictionary<Node, float>();
+            HashSet<Node> closedSet = new HashSet<Node>();
+            PriorityQueue openSet = new PriorityQueue();
+            Dictionary<Node, int> g_score = new Dictionary<Node, int>();
             Dictionary<Node, Node> cameFrom = new Dictionary<Node, Node>();
 
             g_score.Add(this, 0);
-            f_score.Add(this, heuristicDistance(this, end));
-            openSet.Add(this);
+            openSet.Insert(heuristicDistance(this, end), this);
 
-            while (openSet.Count > 0)
+            while (openSet.Length > 0)
             {
-                Node currentNode = openSet[0];
+                Node currentNode = openSet.ExtractMin();
 
                 if (currentNode == end)
                 {
                     List<Vector3> path = ReconstructPath(cameFrom, end, new List<Vector3>());
-                    cache[end] = path;
-                    //end.cache[this] = path.AsEnumerable().Reverse().ToList();
                     return path;
                 }
 
-                openSet.RemoveAt(0);
                 closedSet.Add(currentNode);
 
                 if (currentNode.neighbours != null && currentNode.neighbours.Length > 0)
                 {
                     foreach (var neighbour in currentNode.neighbours)
                     {
-                        float tentative_g_score = g_score[currentNode] + RealDistance(currentNode, neighbour);
+                        int tentative_g_score = g_score[currentNode] + RealDistance(currentNode, neighbour);
 
                         if (closedSet.Contains(neighbour))
                         {
@@ -189,24 +195,23 @@ public class Pathfinding
                                 continue;
                             else
                             {
+                                Debug.Log("Remove");
                                 closedSet.Remove(currentNode);
                             }
-                        }                        
+                        }
 
                         if (openSet.Contains(neighbour))
                         {
                             if (tentative_g_score >= g_score[neighbour])
                                 continue;
                             else
-                                openSet.Remove(neighbour);
+                                openSet.DecreaseKey(tentative_g_score + heuristicDistance(neighbour, end), neighbour);
                         }
+                        else
+                            openSet.Insert(tentative_g_score + heuristicDistance(neighbour, end), neighbour);
 
                         cameFrom[neighbour] = currentNode;
                         g_score[neighbour] = tentative_g_score;
-                        f_score[neighbour] = tentative_g_score + heuristicDistance(neighbour, end);
-
-                        int index = openSet.TakeWhile(node => f_score[node] < f_score[neighbour]).ToList().Count;
-                        openSet.Insert(index, neighbour);
                     }
                 }
             }
@@ -238,14 +243,13 @@ public class Pathfinding
             if (cameFrom.ContainsKey(end))
             {
                 Node previous = cameFrom[end];
-                previous.cache[end] = currentPath;
                 return ReconstructPath(cameFrom, previous, currentPath);
             }
             else
                 return currentPath;
         }
 
-        float RealDistance(Node a, Node b)
+        int RealDistance(Node a, Node b)
         {
             return (a.cost + b.cost) / 2;
         }
@@ -253,6 +257,115 @@ public class Pathfinding
         public bool IsNeighbour(Node other)
         {
             return this.neighbours.Contains(other) || other.neighbours.Contains(this);
+        }
+    }
+
+    class PriorityQueue
+    {
+        List<KeyValuePair<float, Node>> A;
+        Dictionary<int, int> indexes;
+        int nextElement;
+
+        public PriorityQueue()
+        {
+            A = new List<KeyValuePair<float, Node>>();
+            indexes = new Dictionary<int, int>();
+            nextElement = 0;
+        }
+
+        public int Length
+        {
+            get { return nextElement; }
+        }
+
+        public Node Min()
+        {
+            if (Length < 1)
+                throw new System.Exception("Heap underflow");
+
+            return A[0].Value;
+        }
+
+        public Node ExtractMin()
+        {
+            if (Length < 1)
+                throw new System.Exception("Heap underflow");
+
+            Node min = A[0].Value;
+            A[0] = A[nextElement - 1];
+            indexes.Remove(min.Id);
+            nextElement--;
+            MinHeapify(0);
+
+            return min;
+        }
+
+        public void DecreaseKey(float newKey, Node node)
+        {
+            if(!indexes.ContainsKey(node.Id))
+                return;
+
+            int index = indexes[node.Id];
+
+            if (newKey > A[index].Key)
+                return;
+
+            A[index] = new KeyValuePair<float, Node>(newKey, A[index].Value);
+
+            while (index > 0 && A[(index - 1) / 2].Key > A[index].Key)
+            {
+                indexes[A[index].Value.Id] = (index - 1) / 2;
+                indexes[A[(index - 1) / 2].Value.Id] = index;
+
+                KeyValuePair<float, Node> tmp = A[index];
+                A[index] = A[(index - 1) / 2];
+                A[(index - 1) / 2] = tmp;
+
+                index = (index - 1) / 2;
+            }
+        }
+
+        public void Insert(float key, Node value)
+        {
+            if(nextElement >= A.Count)
+                A.Add(new KeyValuePair<float, Node>(key, value));
+            else
+                A[nextElement] = new KeyValuePair<float, Node>(key, value);
+            nextElement++;
+            indexes.Add(value.Id, nextElement - 1);
+            DecreaseKey(key, value);
+        }
+
+        public bool Contains(Node value)
+        {
+            return indexes.ContainsKey(value.Id);
+        }
+
+        void MinHeapify(int index)
+        {
+            int left = 2 * index + 1;
+            int right = left + 1;
+
+            int smallest;
+
+            if (left < Length && A[left].Key < (A[index].Key))
+                smallest = left;
+            else
+                smallest = index;
+            if (right < Length && A[right].Key < A[smallest].Key)
+                smallest = right;
+
+            if (smallest != index)
+            {
+                indexes[A[index].Value.Id] = smallest;
+                indexes[A[smallest].Value.Id] = index;
+
+                KeyValuePair<float, Node> tmp = A[index];
+                A[index] = A[smallest];
+                A[smallest] = tmp;
+
+                MinHeapify(smallest);
+            }
         }
     }
 }

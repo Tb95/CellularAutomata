@@ -43,8 +43,7 @@ public class Player3D : MonoBehaviour
     {
         if (currentHealth <= 0)
         {
-            healthText.text = "Game Over";
-            Time.timeScale = 0;
+            Application.LoadLevel("MainMenu");
         }
 
         if (Input.GetMouseButtonDown(0))

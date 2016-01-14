@@ -33,6 +33,7 @@ public class EnemyController : MonoBehaviour
     Animator animator;
     EnemySpawner spawner;
     int currentHealth;
+    bool pathfindingScheduled;
 
     enum State
     {
@@ -85,6 +86,7 @@ public class EnemyController : MonoBehaviour
         nextStep = transform.position;
 
         enemiesNearby = new List<EnemyController>();
+        pathfindingScheduled = false;
 
         currentHealth = health;
 
@@ -182,6 +184,11 @@ public class EnemyController : MonoBehaviour
 
     IEnumerator Pathfind()
     {
+        if(pathfindingScheduled)
+            yield break;
+
+        pathfindingScheduled = true;
+        lastPathfindedPosition = target.position;
         float waitSeconds = 5;
         bool pathFound = false;
 
@@ -237,6 +244,8 @@ public class EnemyController : MonoBehaviour
         {
             currentState = State.Idle;
         }
+
+        pathfindingScheduled = false;
     }
 
     float ApproximatedDistance(Vector3 a, Vector3 b)
