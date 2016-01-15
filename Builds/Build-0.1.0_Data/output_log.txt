@@ -1,0 +1,39 @@
+Initialize engine version: 5.2.3f1 (f3d16a1fa2dd)
+GfxDevice: creating device client; threaded=1
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.0]
+    Renderer: Intel(R) HD Graphics Family (ID=0x116)
+    Vendor:   Intel
+    VRAM:     1070 MB
+Begin MonoManager ReloadAssembly
+Platform assembly: C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\UnityEngine.dll (this message is harmless)
+Loading C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\UnityEngine.dll into Unity Child Domain
+Platform assembly: C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\Assembly-CSharp-firstpass.dll (this message is harmless)
+Loading C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\Assembly-CSharp-firstpass.dll into Unity Child Domain
+Platform assembly: C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\Assembly-CSharp.dll (this message is harmless)
+Loading C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\Assembly-CSharp.dll into Unity Child Domain
+Platform assembly: C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\UnityEngine.UI.dll (this message is harmless)
+Loading C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\UnityEngine.UI.dll into Unity Child Domain
+Platform assembly: C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\UnityEngine.Networking.dll (this message is harmless)
+Loading C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\UnityEngine.Networking.dll into Unity Child Domain
+Platform assembly: C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\System.Core.dll (this message is harmless)
+- Completed reload, in  0.069 seconds
+desktop: 1366x768 60Hz; virtual: 1366x768 at 0,0
+<RI> Initializing input.
+<RI> Input initialized.
+<RI> Initialized touch support.
+Platform assembly: C:\Users\Polimi\Desktop\Programmazione\Unity\Cellular Automata - Unity Tutorial\Builds\Build-0.1.0_Data\Managed\System.dll (this message is harmless)
+Setting up 1 worker threads for Enlighten.
+  Thread -> id: 2214 -> priority: 1 
+Unloading 3 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 5.140869 ms
+
+Unloading 6 unused Assets to reduce memory usage. Loaded Objects now: 503.
+Total: 0.404102 ms (FindLiveObjects: 0.041906 ms CreateObjectMapping: 0.025657 ms MarkObjects: 0.314729 ms  DeleteObjects: 0.020953 ms)
+
+Unloading 2 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 7.648871 ms
+
+Unloading 7 unused Assets to reduce memory usage. Loaded Objects now: 597.
+Total: 36.618538 ms (FindLiveObjects: 0.808632 ms CreateObjectMapping: 0.171476 ms MarkObjects: 35.533661 ms  DeleteObjects: 0.102629 ms)
+
