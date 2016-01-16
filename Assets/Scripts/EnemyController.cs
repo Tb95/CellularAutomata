@@ -15,6 +15,10 @@ public class EnemyController : MonoBehaviour
     public float pathfindingPrecision;
     [Range(0, 5)]
     public float pathfollowingPrecision;
+    [Range(0, 10)]
+    public int chasingRange;
+    [Range(0.1f, 10f)]
+    public float pathfindingRandomMaxWaitTime;
     [Range(0, 5)]
     public float attackRange;
     [Range(0, 100)]
@@ -27,7 +31,7 @@ public class EnemyController : MonoBehaviour
     Rigidbody myRigidbody;
     Vector3 velocity;
     Pathfinding pathfinding;
-    List<Vector3> path;
+    LinkedList<Vector3> path;
     Vector3 lastPathfindedPosition;
     Vector3 nextStep;
     Animator animator;
@@ -39,21 +43,24 @@ public class EnemyController : MonoBehaviour
     {
         Moving,
         Attacking,
+        Chasing,
         Idle
     }
     State currentState;
-    private State CurrentState
+    State CurrentState
     {
         get { return currentState; }
         set
         {
             if (value != currentState)
             {
+                //Debug.Log("Switched from " + currentState + " to " + value);
                 switch (value)
                 {
                     case State.Idle:
                         animator.SetInteger("State", 0);
                         velocity = Vector3.zero;
+                        path = null;
                         break;
                     case State.Moving:
                         animator.SetInteger("State", 1);
@@ -61,6 +68,11 @@ public class EnemyController : MonoBehaviour
                     case State.Attacking:
                         animator.SetInteger("State", 2);
                         velocity = Vector3.zero;
+                        path = null;
+                        break;
+                    case State.Chasing:
+                        animator.SetInteger("State", 1);
+                        path = null;
                         break;
                 }
                 currentState = value;
@@ -101,40 +113,53 @@ public class EnemyController : MonoBehaviour
             case State.Idle:
                 if (ApproximatedDistance(transform.position, target.position) < attackRange * attackRange)
                     CurrentState = State.Attacking;
+                else if (ApproximatedDistance(transform.position, target.position) < chasingRange * chasingRange)
+                {
+                    CurrentState = State.Chasing;
+                }
                 else if (ApproximatedDistance(lastPathfindedPosition, target.position) > pathfindingPrecision * pathfindingPrecision)
                 {
                     StartCoroutine(Pathfind());
-                    CurrentState = State.Moving;
                 }
                 break;
 
             case State.Moving:
                 if (ApproximatedDistance(transform.position, target.position) < attackRange * attackRange)
+                {
                     CurrentState = State.Attacking;
+                }
+                else if (ApproximatedDistance(transform.position, target.position) < chasingRange * chasingRange)
+                {
+                    CurrentState = State.Chasing;
+                }
                 else
                 {
                     if (ApproximatedDistance(lastPathfindedPosition, target.position) > pathfindingPrecision * pathfindingPrecision)
+                    {
                         StartCoroutine(Pathfind());
+                    }
 
                     if (ApproximatedDistance(nextStep, transform.position) < pathfollowingPrecision * pathfollowingPrecision)
                     {
                         if (path != null && path.Count > 0)
                         {
-                            nextStep = path[0];
-                            path.RemoveAt(0);
+                            nextStep = path.First.Value;
+                            path.RemoveFirst();
                         }
-                        else if (ApproximatedDistance(transform.position, target.position) < 5 * attackRange * attackRange)
-                            nextStep = target.position;
                         else
+                        {
                             CurrentState = State.Idle;
+                            StartCoroutine(Pathfind());
+                        }                            
                     }
+
+                    velocity = nextStep - transform.position;
+                    velocity.y = 0;
+                    velocity = velocity.normalized * speed;
+                    if (velocity.magnitude != 0)
+                        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(velocity), rotationSpeed * Time.deltaTime);
                 }
                 
-                velocity = nextStep - transform.position;
-                velocity.y = 0;
-                velocity = velocity.normalized * speed;
-                if(velocity.magnitude != 0)
-                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(velocity), rotationSpeed * Time.deltaTime);
                 break;
 
             case State.Attacking:
@@ -142,32 +167,50 @@ public class EnemyController : MonoBehaviour
 
                 if ( approxDistance > attackRange * attackRange)
                 {
-                    if (approxDistance > 5 * attackRange * attackRange)
+                    if (approxDistance > chasingRange * chasingRange)
                     {
                         StartCoroutine(Pathfind());
-                        CurrentState = State.Moving;
                     }
                     else
                     {
-                        nextStep = target.position;
-                        velocity = nextStep - transform.position;
-                        velocity.y = 0;
-                        velocity = velocity.normalized * speed;
-                        CurrentState = State.Moving;
+                        CurrentState = State.Chasing;
                     }
                 }
 
                 Vector3 lookAt = target.position - transform.position;
                 lookAt.y = 0;
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(lookAt), rotationSpeed * Time.deltaTime);
+                if(lookAt.magnitude != 0)
+                    transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(lookAt), rotationSpeed * Time.deltaTime);
+                break;
+
+            case State.Chasing:
+                if (ApproximatedDistance(target.position, transform.position) < attackRange * attackRange)
+                {
+                    CurrentState = State.Attacking;
+                }
+                else if (ApproximatedDistance(target.position, transform.position) > chasingRange * chasingRange)
+                {
+                    StartCoroutine(Pathfind());
+                }
+                else
+                {
+                    velocity = target.position - transform.position;
+                    velocity.y = 0;
+                    velocity = velocity.normalized * speed;
+                    if (velocity.magnitude != 0)
+                        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(velocity), rotationSpeed * Time.deltaTime);
+                }
+
                 break;
         }
 
         if (drawPath && path != null && path.Count > 0)
         {
-            for (int i = 0; i < path.Count - 1; i++)
+            Vector3[] p = new Vector3[path.Count];
+            path.CopyTo(p, 0);
+            for (int i = 0; i < p.Length - 1; i++)
             {
-                Debug.DrawLine(path[i], path[i + 1]);
+                Debug.DrawLine(p[i], p[i + 1]);
             }
             Debug.DrawLine(nextStep + new Vector3(2.5f, 0, 2.5f), nextStep + new Vector3(-2.5f, 0, -2.5f), Color.red);
             Debug.DrawLine(nextStep + new Vector3(2.5f, 0, -2.5f), nextStep + new Vector3(-2.5f, 0, 2.5f), Color.red);
@@ -176,7 +219,7 @@ public class EnemyController : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (CurrentState == State.Moving)
+        if (CurrentState == State.Moving || CurrentState == State.Chasing)
         {
             myRigidbody.MovePosition(myRigidbody.position + velocity * Time.fixedDeltaTime);
         }
@@ -189,12 +232,12 @@ public class EnemyController : MonoBehaviour
 
         pathfindingScheduled = true;
         lastPathfindedPosition = target.position;
-        float waitSeconds = 5;
+        float waitSeconds = pathfindingRandomMaxWaitTime;
         bool pathFound = false;
 
         if (pathfinding.AreNeighbours(lastPathfindedPosition, target.position) && path != null)
         {
-            path.Add(target.position);
+            path.AddLast(target.position);
             pathFound = true;
             waitSeconds = 0;
         }
@@ -213,12 +256,11 @@ public class EnemyController : MonoBehaviour
             {
                 if (enemy.lastPathfindedPosition == lastPathfindedPosition && enemy.path != null)
                 {
-                    path = new List<Vector3>();
+                    path = new LinkedList<Vector3>();
                     foreach (var pos in enemy.path)
                     {
-                        path.Add(pos);
+                        path.AddLast(pos);
                     }
-                    path.Reverse();
                     pathFound = true;
                     break;
                 }
@@ -233,16 +275,15 @@ public class EnemyController : MonoBehaviour
         {
             CurrentState = State.Moving;
 
-            path.RemoveAt(path.Count - 1);
-            path.Add(lastPathfindedPosition);
+            path.RemoveLast();
+            path.AddLast(lastPathfindedPosition);
 
-            path.RemoveAt(0);
-            nextStep = path[0];
-            path.RemoveAt(0);            
+            nextStep = path.First.Value;
+            path.RemoveFirst();            
         }
         else
         {
-            currentState = State.Idle;
+            CurrentState = State.Idle;
         }
 
         pathfindingScheduled = false;

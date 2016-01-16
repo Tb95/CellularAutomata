@@ -461,6 +461,7 @@ public class MapGenerator : MonoBehaviour
             Camera.main.gameObject.SetActive(false);
 
         Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void SetCeilingAndFloor()

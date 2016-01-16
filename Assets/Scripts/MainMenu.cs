@@ -2,16 +2,22 @@
 using UnityEngine.UI;
 using System.Collections;
 
-public class MainMenu : MonoBehaviour {
+public class MainMenu : MonoBehaviour
+{
 
+    #region variables
     public Slider width;
     public Slider height;
     public Slider enemies;
     public GameObject map;
     public GameObject spawner;
+    #endregion
 
-	void Start () {
+    void Start () {
         DontDestroyOnLoad(this);
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 	}
 
     public void Play()
@@ -33,5 +39,7 @@ public class MainMenu : MonoBehaviour {
         EnemySpawner spawnerScript = spawner.GetComponent<EnemySpawner>();
         spawnerScript.maxEnemies = (int) enemies.value;
         Instantiate(spawner);
+
+        Destroy(this, 2);
     }
 }

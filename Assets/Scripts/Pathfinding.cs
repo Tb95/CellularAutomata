@@ -95,14 +95,14 @@ public class Pathfinding
         }
     }
 
-    public List<Vector3> GetPath(Vector3 from, Vector3 to)
+    public LinkedList<Vector3> GetPath(Vector3 from, Vector3 to)
     {
         MapGenerator.Coord start = mapGen.WorldToCoordPoint(from);
         MapGenerator.Coord end = mapGen.WorldToCoordPoint(to);
         Node startNode = nodeMap[start.tileX, start.tileY];
         Node endNode = nodeMap[end.tileX, end.tileY];
 
-        List<Vector3> path = new List<Vector3>();
+        LinkedList<Vector3> path = null;
         System.Threading.Thread newThread = new System.Threading.Thread(() => path = startNode.FindPathTo(endNode));
         newThread.Start();
         newThread.Join();
@@ -161,7 +161,7 @@ public class Pathfinding
             }
         }*/
 
-        public List<Vector3> FindPathTo(Node end)
+        public LinkedList<Vector3> FindPathTo(Node end)
         {
             HashSet<Node> closedSet = new HashSet<Node>();
             PriorityQueue openSet = new PriorityQueue();
@@ -177,7 +177,7 @@ public class Pathfinding
 
                 if (currentNode == end)
                 {
-                    List<Vector3> path = ReconstructPath(cameFrom, end, new List<Vector3>());
+                    LinkedList<Vector3> path = ReconstructPath(cameFrom, end);
                     return path;
                 }
 
@@ -234,19 +234,17 @@ public class Pathfinding
             return A * max + B * min;
         }
 
-        List<Vector3> ReconstructPath(Dictionary<Node, Node> cameFrom, Node end, List<Vector3> currentPath)
+        LinkedList<Vector3> ReconstructPath(Dictionary<Node, Node> cameFrom, Node end)
         {
-            Vector3 pos = end.position;
-
-            currentPath.Insert(0, pos);
-
             if (cameFrom.ContainsKey(end))
             {
                 Node previous = cameFrom[end];
-                return ReconstructPath(cameFrom, previous, currentPath);
+                LinkedList<Vector3> path = ReconstructPath(cameFrom, previous);
+                path.AddLast(end.position);
+                return path;
             }
             else
-                return currentPath;
+                return new LinkedList<Vector3>();
         }
 
         int RealDistance(Node a, Node b)
