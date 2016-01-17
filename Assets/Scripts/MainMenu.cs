@@ -27,13 +27,15 @@ public class MainMenu : MonoBehaviour
 
     public IEnumerator Load()
     {
-        Application.LoadLevel("RandomLevel");
+        UnityEngine.SceneManagement.SceneManager.LoadScene("RandomLevel");
 
         yield return new WaitForSeconds(1);
 
         MapGenerator mapGen = map.GetComponent<MapGenerator>();
         mapGen.width = (int) width.value;
         mapGen.height = (int) height.value;
+        mapGen.smallestRoomRegion = Mathf.Max(Mathf.Min(mapGen.width, mapGen.height) / 6, 20);
+        mapGen.smallestWallRegion = Mathf.Max(Mathf.Min(mapGen.width, mapGen.height) / 10, 10);
         Instantiate(map);
 
         EnemySpawner spawnerScript = spawner.GetComponent<EnemySpawner>();

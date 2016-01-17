@@ -9,7 +9,6 @@ public class Pathfinding
     #region variables
     Node[,] nodeMap;
     MapGenerator mapGen;
-    static int maxId;
     #endregion
 
     public Pathfinding(int[,] map, MapGenerator mapGen, List<MapGenerator.Room> rooms)
@@ -18,7 +17,6 @@ public class Pathfinding
         nodeMap = new Node[map.GetLength(0), map.GetLength(1)];
 
         int id = 0;
-        maxId = map.GetLength(0) * map.GetLength(1);
 
         for (int x = 0; x < map.GetLength(0); x++)
         {

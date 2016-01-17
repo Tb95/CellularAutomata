@@ -116,21 +116,34 @@ public class MeshGenerator : MonoBehaviour
 
         foreach (var outline in outlines)
         {
-            for (int i = 0; i < outline.Count - 1; i++)
+            int firstIndex = wallVertices.Count;
+
+            wallVertices.Add(vertices[outline[0]]);                                 //topLeft
+            wallVertices.Add(vertices[outline[0]] - Vector3.up * wallHeight);       //bottomLeft
+
+            for (int i = 1; i < outline.Count - 1; i++)
             {
                 int startIndex = wallVertices.Count;
-                wallVertices.Add(vertices[outline[i]]);                                 //left
-                wallVertices.Add(vertices[outline[i + 1]]);                             //right
-                wallVertices.Add(vertices[outline[i]] - Vector3.up * wallHeight);       //bottomLeft
-                wallVertices.Add(vertices[outline[i + 1]] - Vector3.up * wallHeight);   //bottomRight
 
-                wallTriangles.Add(startIndex + 0);
-                wallTriangles.Add(startIndex + 2);
-                wallTriangles.Add(startIndex + 3);
-                wallTriangles.Add(startIndex + 3);
+                wallVertices.Add(vertices[outline[i]]);                                 //topRight
+                wallVertices.Add(vertices[outline[i]] - Vector3.up * wallHeight);       //bottomRight
+
+                wallTriangles.Add(startIndex - 2);
+                wallTriangles.Add(startIndex - 1);
                 wallTriangles.Add(startIndex + 1);
-                wallTriangles.Add(startIndex + 0);
+                wallTriangles.Add(startIndex + 1);
+                wallTriangles.Add(startIndex - 0);
+                wallTriangles.Add(startIndex - 2);
             }
+
+            int lastIndex = wallVertices.Count - 1;
+
+            wallTriangles.Add(lastIndex - 1);
+            wallTriangles.Add(lastIndex - 0);
+            wallTriangles.Add(firstIndex + 1);
+            wallTriangles.Add(firstIndex + 1);
+            wallTriangles.Add(firstIndex + 0);
+            wallTriangles.Add(lastIndex - 1);
         }
 
         wallMesh.vertices = wallVertices.ToArray();

@@ -44,6 +44,7 @@ public class MapGenerator : MonoBehaviour
     System.Random randGen;
     List<Coord> spawnPoints;
 #endregion
+    double time;
 
 	void Start () {
         if(map == null)
@@ -56,15 +57,20 @@ public class MapGenerator : MonoBehaviour
         map = new int[width, height];
         RandomFillMap();
 
+        time = AudioSettings.dspTime; 
         for (int i = 0; i < smoothAmount; i++)
 		{
 		    SmoothMap();	 
 		}
+        Debug.Log("Time for SmoothMap = " + (AudioSettings.dspTime - time) * 1000);
 
+        time = AudioSettings.dspTime;
         ProcessMap();
+        Debug.Log("Time for ProcessMap = " + (AudioSettings.dspTime - time) * 1000);
         
         int[,] borderedMap = new int[width + borderSize * 2, height + borderSize * 2];
 
+        time = AudioSettings.dspTime;
         for (int x = 0; x < borderedMap.GetLength(0); x++)
         {
             for (int y = 0; y < borderedMap.GetLength(1); y++)
@@ -75,9 +81,12 @@ public class MapGenerator : MonoBehaviour
                     borderedMap[x, y] = 1;
             }
         }
+        Debug.Log("Time for BorderMap = " + (AudioSettings.dspTime - time) * 1000);
 
+        time = AudioSettings.dspTime;
         MeshGenerator meshGen = GetComponent<MeshGenerator>();
         meshGen.GenerateMesh(borderedMap, squareSize, wallHeight, is2D);
+        Debug.Log("Time for GenerateMesh = " + (AudioSettings.dspTime - time) * 1000);
 
         SetCeilingAndFloor();
 	}
@@ -217,6 +226,7 @@ public class MapGenerator : MonoBehaviour
 
         List<List<Coord>> roomRegions = GetRegions(0);
         List<Room> rooms = new List<Room>();
+        HashSet<Room> roomsToConnect = new HashSet<Room>();
 
         foreach (var roomRegion in roomRegions)
         {
@@ -226,22 +236,71 @@ public class MapGenerator : MonoBehaviour
                     map[tile.tileX, tile.tileY] = 1;
                 }
             else
-                rooms.Add(new Room(roomRegion, map));
+            {
+                rooms.Add(new Room(roomRegion, map, this));
+                roomsToConnect.Add(new Room(roomRegion, map, this));
+            }
         }
+        Room mainRoom = rooms.Max();
+        mainRoom.isMainRoom = true;
+        mainRoom.isAccessibleFromMainRoom = true;
 
-        rooms.Sort();
-        rooms[0].isMainRoom = true;
-        rooms[0].isAccessibleFromMainRoom = true;
+        spawnTile = mainRoom.RandomPointInside();
 
-        spawnTile = rooms[0].RandomPointInside();
+        ConnectRooms(roomsToConnect, mainRoom);
 
-        List<Passage> passages = ConnectClosestRooms(rooms);
-        passages = passages.Concat(CreateSpawnpoints(rooms)).ToList();
+        CreateSpawnpoints(rooms);
 
         pathfinding = new Pathfinding(map, this, rooms);
     }
 
-    List<Passage> ConnectClosestRooms(List<Room> rooms, List<Passage> passages = null, bool forceAccessibilityFromMainRoom = false)
+    List<Passage> ConnectRooms(HashSet<Room> notConnectedRooms, Room mainRoom)
+    {
+        List<Passage> passages = new List<Passage>();
+        HashSet<Room> connectedRooms = new HashSet<Room>();
+        connectedRooms.Add(mainRoom);
+
+        while (notConnectedRooms.Count > 0)
+        {
+            Room bestRoomA = new Room();
+            Room bestRoomB = new Room();
+            Coord bestTileA = new Coord();
+            Coord bestTileB = new Coord();
+            float bestDistance = 0;
+
+            foreach (var roomA in notConnectedRooms)
+            {
+
+                foreach (var roomB in connectedRooms)
+                {
+                    foreach (var tileA in roomA.edgeTiles)
+                    {
+                        foreach (var tileB in roomB.edgeTiles)
+                        {
+                            float thisDistance = Mathf.Abs(tileA.tileX - tileB.tileX) + Mathf.Abs(tileA.tileY - tileB.tileY);
+                            if (thisDistance < bestDistance || bestDistance == 0)
+                            {
+                                bestDistance = thisDistance;
+                                bestTileA = tileA;
+                                bestTileB = tileB;
+                                bestRoomA = roomA;
+                                bestRoomB = roomB;
+                            }
+                        }
+                    }
+                }
+            }
+
+            passages.Add(CreatePassage(bestRoomA, bestRoomB, bestTileA, bestTileB));
+
+            notConnectedRooms.Remove(bestRoomA);
+            connectedRooms.Add(bestRoomA);
+        }
+
+        return passages;
+    }
+
+    /*List<Passage> ConnectClosestRooms(List<Room> rooms, List<Passage> passages = null, bool forceAccessibilityFromMainRoom = false)
     {
         List<Room> roomListA = new List<Room>();
         List<Room> roomListB = new List<Room>();
@@ -317,7 +376,7 @@ public class MapGenerator : MonoBehaviour
             return ConnectClosestRooms(rooms, passages, true);
 
         return passages;
-    }
+    }*/
 
     Passage CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
@@ -547,13 +606,11 @@ public class MapGenerator : MonoBehaviour
             List<Coord> path = GetLine(spawnPoint, nearestPoint);
 
             int l = path.Count;
-            if (l > 4)
-                InstantiateSpawnpointWallBetween(path[l - 3], path[l - 4]);
-            else if (l > 3)
+            if (l > 5)
                 InstantiateSpawnpointWallBetween(path[2], path[3]);
-            else if (l > 2)
+            else if (l > 4)
                 InstantiateSpawnpointWallBetween(path[1], path[2]);
-            else if (l > 1)
+            else if (l > 3)
                 InstantiateSpawnpointWallBetween(path[0], path[1]);
             else
                 InstantiateSpawnpointWallBetween(spawnPoint, nearestPoint);
@@ -636,7 +693,7 @@ public class MapGenerator : MonoBehaviour
 
         public Room() { }
 
-        public Room(List<Coord> tiles, int[,] map)
+        public Room(List<Coord> tiles, int[,] map, MapGenerator mapGen)
         {
             this.tiles = tiles;
             this.size = tiles.Count;
@@ -646,14 +703,22 @@ public class MapGenerator : MonoBehaviour
             this.isAccessibleFromMainRoom = false;
             this.isMainRoom = false;
 
+            int randomAdd = 0;
+            int randomAddModulo = Mathf.CeilToInt(2 * Mathf.Sqrt(mapGen.smallestRoomRegion));
             foreach (var tile in tiles)
             {
+                bool edgeTileAdded = false;
                 for (int x = tile.tileX - 1; x <= tile.tileX + 1; x++)
                 {
                     for (int y = tile.tileY - 1; y <= tile.tileY + 1; y++)
                     {
-                        if ((x == tile.tileX || y == tile.tileY) && map[x, y] == 1)
-                            edgeTiles.Add(tile);
+                        if (!edgeTileAdded && (x == tile.tileX || y == tile.tileY) && map[x, y] == 1)
+                        {
+                            if(randomAdd == 0)
+                                edgeTiles.Add(tile);
+                            edgeTileAdded = true;
+                            randomAdd = (randomAdd + 1) % randomAddModulo;
+                        }
                     }
                 }
             }

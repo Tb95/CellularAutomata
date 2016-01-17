@@ -43,7 +43,7 @@ public class Player3D : MonoBehaviour
     {
         if (currentHealth <= 0)
         {
-            Application.LoadLevel("MainMenu");
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
         }
 
         if (Input.GetMouseButtonDown(0))
