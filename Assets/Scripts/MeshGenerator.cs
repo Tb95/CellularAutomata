@@ -38,23 +38,33 @@ public class MeshGenerator : MonoBehaviour
             }
         }
 
-        Mesh mesh = new Mesh();
-        cave.mesh = mesh;
-
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles.ToArray();
-        mesh.RecalculateNormals();
-
-        Vector2[] uvs = new Vector2[vertices.Count];
-        for (int i = 0; i < vertices.Count; i++)
+        if (is2D)
         {
-            float percentX = Mathf.InverseLerp(-map.GetLength(0) * squareSize / 2, map.GetLength(0) * squareSize / 2, vertices[i].x) * textureRepeatAmount;
-            float percentY = Mathf.InverseLerp(-map.GetLength(1) * squareSize / 2, map.GetLength(1) * squareSize / 2, vertices[i].z) * textureRepeatAmount;
-            uvs[i] = new Vector2(percentX, percentY);
-        }
-        mesh.uv = uvs;
+            Mesh mesh = new Mesh();
+            cave.mesh = mesh;
 
-        if (!is2D)
+            mesh.vertices = vertices.ToArray();
+            mesh.triangles = triangles.ToArray();
+            mesh.RecalculateNormals();
+
+            Vector2[] uvs = new Vector2[vertices.Count];
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                float percentX = Mathf.InverseLerp(-map.GetLength(0) * squareSize / 2, map.GetLength(0) * squareSize / 2, vertices[i].x) * textureRepeatAmount;
+                float percentY = Mathf.InverseLerp(-map.GetLength(1) * squareSize / 2, map.GetLength(1) * squareSize / 2, vertices[i].z) * textureRepeatAmount;
+                uvs[i] = new Vector2(percentX, percentY);
+            }
+            mesh.uv = uvs;
+
+            walls.mesh = new Mesh();
+            MeshCollider wallCollider = walls.gameObject.GetComponent<MeshCollider>();
+            if (wallCollider != null)
+                wallCollider.sharedMesh = new Mesh();
+
+            cave.transform.rotation = Quaternion.Euler(270, 0, 0);
+            Generate2DColliders();
+        }
+        else
         {
             EdgeCollider2D[] currentColliders = GetComponents<EdgeCollider2D>();
             foreach (var collider in currentColliders)
@@ -67,16 +77,6 @@ public class MeshGenerator : MonoBehaviour
 
             cave.transform.rotation = Quaternion.Euler(0, 0, 0);
             CreateWallMesh(wallHeight);
-        }
-        else
-        {
-            walls.mesh = new Mesh();
-            MeshCollider wallCollider = walls.gameObject.GetComponent<MeshCollider>();
-            if (wallCollider != null)
-                wallCollider.sharedMesh = new Mesh();
-
-            cave.transform.rotation = Quaternion.Euler(270, 0, 0);
-            Generate2DColliders();
         }
     }
 
@@ -112,21 +112,28 @@ public class MeshGenerator : MonoBehaviour
 
         List<Vector3> wallVertices = new List<Vector3>();
         List<int> wallTriangles = new List<int>();
+        List<Vector2> uvs = new List<Vector2>();
         Mesh wallMesh = new Mesh();
 
         foreach (var outline in outlines)
         {
-            int firstIndex = wallVertices.Count;
-
             wallVertices.Add(vertices[outline[0]]);                                 //topLeft
+            uvs.Add(new Vector2(0, 1));
             wallVertices.Add(vertices[outline[0]] - Vector3.up * wallHeight);       //bottomLeft
+            uvs.Add(new Vector2(0, 0));
+
+            float textureRepeatAmount = (wallHeight / squareGrid.squareSize);
+            float xPositionUv = 0;
 
             for (int i = 1; i < outline.Count - 1; i++)
             {
                 int startIndex = wallVertices.Count;
+                xPositionUv += 1 / textureRepeatAmount;
 
                 wallVertices.Add(vertices[outline[i]]);                                 //topRight
+                uvs.Add(new Vector2(xPositionUv, 1));
                 wallVertices.Add(vertices[outline[i]] - Vector3.up * wallHeight);       //bottomRight
+                uvs.Add(new Vector2(xPositionUv, 0));
 
                 wallTriangles.Add(startIndex - 2);
                 wallTriangles.Add(startIndex - 1);
@@ -135,33 +142,37 @@ public class MeshGenerator : MonoBehaviour
                 wallTriangles.Add(startIndex - 0);
                 wallTriangles.Add(startIndex - 2);
             }
+            xPositionUv += 1 / textureRepeatAmount;
+
+            wallVertices.Add(vertices[outline[0]]);                                 //topLeft
+            uvs.Add(new Vector2(xPositionUv, 1));
+            wallVertices.Add(vertices[outline[0]] - Vector3.up * wallHeight);       //bottomLeft
+            uvs.Add(new Vector2(xPositionUv, 0));
 
             int lastIndex = wallVertices.Count - 1;
 
-            wallTriangles.Add(lastIndex - 1);
+            wallTriangles.Add(lastIndex - 3);
+            wallTriangles.Add(lastIndex - 2);
             wallTriangles.Add(lastIndex - 0);
-            wallTriangles.Add(firstIndex + 1);
-            wallTriangles.Add(firstIndex + 1);
-            wallTriangles.Add(firstIndex + 0);
+            wallTriangles.Add(lastIndex - 0);
             wallTriangles.Add(lastIndex - 1);
+            wallTriangles.Add(lastIndex - 3);
         }
 
         wallMesh.vertices = wallVertices.ToArray();
         wallMesh.triangles = wallTriangles.ToArray();
+        wallMesh.uv = uvs.ToArray();
         wallMesh.RecalculateNormals();
         walls.mesh = wallMesh;
 
-        Vector2[] uvs = new Vector2[wallVertices.Count];
-        for (int i = 0; i < wallVertices.Count; i+=4)
+        /*Vector2[] uvs = new Vector2[wallVertices.Count];
+        for (int i = 0; i < wallVertices.Count; i+=2)
         {
-            float leftX = squareGrid.squareSize / textureRepeatAmount * (i / 4);
-            float rightX = squareGrid.squareSize / textureRepeatAmount * ((i / 4) + 1);
-            uvs[i] = new Vector2(leftX, 1);             //left
-            uvs[i + 1] = new Vector2(rightX, 1);        //right
-            uvs[i + 2] = new Vector2(leftX, 0);         //bottomLeft
-            uvs[i + 3] = new Vector2(rightX, 0);        //bottomRight
+            float leftX = squareGrid.squareSize / textureRepeatAmount * (i / 2);
+            uvs[i] = new Vector2(leftX, 1);             //top
+            uvs[i + 1] = new Vector2(leftX, 0);         //bottom
         }
-        wallMesh.uv = uvs;
+        wallMesh.uv = uvs;*/
 
         MeshCollider wallCollider = walls.gameObject.GetComponent<MeshCollider>();
         if(wallCollider == null)
@@ -255,8 +266,8 @@ public class MeshGenerator : MonoBehaviour
         {
             if (points[i].index == -1)
             {
-                points[i].index = vertices.Count;
-                vertices.Add(points[i].position);
+                    points[i].index = vertices.Count;
+                    vertices.Add(points[i].position);
             }                
         }
     }

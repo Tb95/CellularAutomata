@@ -11,7 +11,7 @@ public class Pathfinding
     MapGenerator mapGen;
     #endregion
 
-    public Pathfinding(int[,] map, MapGenerator mapGen, List<MapGenerator.Room> rooms)
+    public Pathfinding(int[,] map, MapGenerator mapGen)
     {
         this.mapGen = mapGen;
         nodeMap = new Node[map.GetLength(0), map.GetLength(1)];

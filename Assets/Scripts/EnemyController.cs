@@ -54,7 +54,6 @@ public class EnemyController : MonoBehaviour
         {
             if (value != currentState)
             {
-                //Debug.Log("Switched from " + currentState + " to " + value);
                 switch (value)
                 {
                     case State.Idle:

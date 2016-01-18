@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using System.Linq;
 
 public class MainMenu : MonoBehaviour
 {
@@ -9,6 +10,9 @@ public class MainMenu : MonoBehaviour
     public Slider width;
     public Slider height;
     public Slider enemies;
+    public Slider spawnTime;
+    public Text resolutionSelectorLabel;
+    public Toggle fullscreen;
     public GameObject map;
     public GameObject spawner;
     #endregion
@@ -18,7 +22,18 @@ public class MainMenu : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        fullscreen.isOn = Screen.fullScreen;
 	}
+
+    public void ChangeResolution()
+    {
+        int width;
+        width = resolutionSelectorLabel.text.TakeWhile(c => c >= '0' && c <= '9').Select(c => c - '0').Aggregate(0, (acc, n) => acc * 10 + n);
+        int height;
+        height = resolutionSelectorLabel.text.SkipWhile(c => c >= '0' && c <= '9').Skip(3).Select(c => c - '0').Aggregate(0, (acc, n) => acc * 10 + n);
+        Screen.SetResolution(width, height, fullscreen.isOn);
+    }
 
     public void Play()
     {
@@ -40,6 +55,7 @@ public class MainMenu : MonoBehaviour
 
         EnemySpawner spawnerScript = spawner.GetComponent<EnemySpawner>();
         spawnerScript.maxEnemies = (int) enemies.value;
+        spawnerScript.secondsBetweenSpawn = spawnTime.value;
         Instantiate(spawner);
 
         Destroy(this, 2);

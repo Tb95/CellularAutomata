@@ -19,6 +19,9 @@ public class LinkTextToSlider : MonoBehaviour
     }
 
 	public void ChangeValue () {
-        text.text = slider.value.ToString();
+        if (slider.wholeNumbers)
+            text.text = slider.value.ToString();
+        else
+            text.text = string.Format("{0:0.##}", slider.value);
 	}
 }

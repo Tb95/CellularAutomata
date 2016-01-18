@@ -47,8 +47,7 @@ public class MapGenerator : MonoBehaviour
     double time;
 
 	void Start () {
-        if(map == null)
-            GenerateMap();
+        GenerateMap();
 
         InstantiatePlayer(spawnTile, is2D ? player2D : player3D);
 	}
@@ -241,17 +240,21 @@ public class MapGenerator : MonoBehaviour
                 roomsToConnect.Add(new Room(roomRegion, map, this));
             }
         }
-        Room mainRoom = rooms.Max();
-        mainRoom.isMainRoom = true;
-        mainRoom.isAccessibleFromMainRoom = true;
 
-        spawnTile = mainRoom.RandomPointInside();
+        if (rooms.Count > 0)
+        {
+            Room mainRoom = rooms.Max();
+            mainRoom.isMainRoom = true;
+            mainRoom.isAccessibleFromMainRoom = true;
 
-        ConnectRooms(roomsToConnect, mainRoom);
+            spawnTile = mainRoom.RandomPointInside();
 
-        CreateSpawnpoints(rooms);
+            ConnectRooms(roomsToConnect, mainRoom);
 
-        pathfinding = new Pathfinding(map, this, rooms);
+            CreateSpawnpoints(rooms);
+        }
+
+        pathfinding = new Pathfinding(map, this);
     }
 
     List<Passage> ConnectRooms(HashSet<Room> notConnectedRooms, Room mainRoom)
@@ -299,84 +302,6 @@ public class MapGenerator : MonoBehaviour
 
         return passages;
     }
-
-    /*List<Passage> ConnectClosestRooms(List<Room> rooms, List<Passage> passages = null, bool forceAccessibilityFromMainRoom = false)
-    {
-        List<Room> roomListA = new List<Room>();
-        List<Room> roomListB = new List<Room>();
-
-        if(passages == null)
-            passages = new List<Passage>();
-
-        if(forceAccessibilityFromMainRoom){
-            foreach (var room in rooms)
-            {
-                if (room.isAccessibleFromMainRoom)
-                    roomListB.Add(room);
-                else
-                    roomListA.Add(room);
-            }
-        }
-        else
-        {
-            roomListA = rooms;
-            roomListB = rooms;
-        }
-
-        int bestDistance = 0;
-        Coord bestTileA = new Coord();
-        Coord bestTileB = new Coord();
-        Room bestRoomA = new Room();
-        Room bestRoomB = new Room();
-        bool possibleConnectionFound = false;
-
-        foreach (var roomA in roomListA)
-        {
-            if (!forceAccessibilityFromMainRoom)
-            {
-                possibleConnectionFound = false;
-                if (roomA.connectedRooms.Count > 0)
-                    break;
-            }                
-
-            foreach (var roomB in roomListB)
-            {
-                if (roomA == roomB || roomA.IsConnected(roomB))
-                    continue;
-                foreach (var tileA in roomA.edgeTiles)
-                {
-                    foreach (var tileB in roomB.edgeTiles)
-                    {
-                        int distance = (int)(Math.Pow((tileA.tileX - tileB.tileX), 2) + Math.Pow((tileA.tileY - tileB.tileY), 2));
-                        if (distance < bestDistance || !possibleConnectionFound)
-                        {
-                            bestDistance = distance;
-                            possibleConnectionFound = true;
-                            bestTileA = tileA;
-                            bestTileB = tileB;
-                            bestRoomA = roomA;
-                            bestRoomB = roomB;
-                        }
-                    }
-                }
-            }
-
-            if (possibleConnectionFound && !forceAccessibilityFromMainRoom)
-                passages.Add(CreatePassage(bestRoomA, bestRoomB, bestTileA, bestTileB));
-        }
-
-        if (possibleConnectionFound && forceAccessibilityFromMainRoom)
-        {
-            passages.Add(CreatePassage(bestRoomA, bestRoomB, bestTileA, bestTileB));
-            return ConnectClosestRooms(rooms, passages, true);
-        }
-            
-
-        if (!forceAccessibilityFromMainRoom)
-            return ConnectClosestRooms(rooms, passages, true);
-
-        return passages;
-    }*/
 
     Passage CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
@@ -560,6 +485,7 @@ public class MapGenerator : MonoBehaviour
         }
 
         spawnPoints = new List<Coord>(spawnPointNumber);
+        int randomSide = 0;
 
         for (int i = 0; i < spawnPointNumber; i++)
         {
@@ -567,7 +493,7 @@ public class MapGenerator : MonoBehaviour
             int y = randGen.Next(0, height);
 
             Coord spawnPoint = new Coord();
-            int randomSide = randGen.Next(0, 4);
+
             if (randomSide == 0)
                 spawnPoint = new Coord(x, 0);
             else if (randomSide == 1)
@@ -576,6 +502,8 @@ public class MapGenerator : MonoBehaviour
                 spawnPoint = new Coord(0, y);
             else
                 spawnPoint = new Coord(width - 1, y);
+
+            randomSide = (randomSide + 1) % 4;
 
             if (!spawnPoints.Contains(spawnPoint))
                 spawnPoints.Add(spawnPoint);
