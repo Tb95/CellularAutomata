@@ -13,6 +13,7 @@ public class MainMenu : MonoBehaviour
     public Slider spawnTime;
     public Text resolutionSelectorLabel;
     public Toggle fullscreen;
+    public Dropdown vSyncSelector;
     public GameObject map;
     public GameObject spawner;
     #endregion
@@ -33,6 +34,8 @@ public class MainMenu : MonoBehaviour
         int height;
         height = resolutionSelectorLabel.text.SkipWhile(c => c >= '0' && c <= '9').Skip(3).Select(c => c - '0').Aggregate(0, (acc, n) => acc * 10 + n);
         Screen.SetResolution(width, height, fullscreen.isOn);
+
+        QualitySettings.vSyncCount = vSyncSelector.value;
     }
 
     public void Play()

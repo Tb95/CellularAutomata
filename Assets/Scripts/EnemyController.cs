@@ -12,8 +12,6 @@ public class EnemyController : MonoBehaviour
     [Range(0, 100)]
     public float rotationSpeed;
     [Range(0, 5)]
-    public float pathfindingPrecision;
-    [Range(0, 5)]
     public float pathfollowingPrecision;
     [Range(0, 10)]
     public int chasingRange;
@@ -38,6 +36,7 @@ public class EnemyController : MonoBehaviour
     EnemySpawner spawner;
     int currentHealth;
     bool pathfindingScheduled;
+    float pathfindingPrecision;
 
     enum State
     {
@@ -107,6 +106,10 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
+        if(ApproximatedDistance(transform.position, lastPathfindedPosition) > 25)
+            pathfindingPrecision = Mathf.Max(chasingRange,
+                (Mathf.Abs(target.position.x - transform.position.x) + Mathf.Abs(target.position.z - transform.position.z)) / 10);
+
         switch (CurrentState)
         {
             case State.Idle:

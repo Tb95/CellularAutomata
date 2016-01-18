@@ -15,7 +15,7 @@ public class EnemySpawner : MonoBehaviour
 
     List<Vector3> spawnPoints;
     List<EnemyController>[] reusableEnemies;
-    float time;
+    float nextSpawnTime;
     public int currentEnemies;
     #endregion
 
@@ -33,18 +33,15 @@ public class EnemySpawner : MonoBehaviour
             enemy.GetComponent<EnemyController>().SetSpawner(this);
         }
 
-        time = 0;
+        nextSpawnTime = Time.realtimeSinceStartup + secondsBetweenSpawn;
         currentEnemies = 0;
 	}
 	
 	void Update () {
-        time += Time.deltaTime;
-
-        if (time > secondsBetweenSpawn)
+        if (spawnEnemies && Time.realtimeSinceStartup > nextSpawnTime)
         {
-            if(spawnEnemies)
-                SpawnEnemy();
-            time = 0;
+            SpawnEnemy();
+            nextSpawnTime = Time.realtimeSinceStartup + secondsBetweenSpawn;
         }
 	}
 

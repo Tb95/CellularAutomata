@@ -147,17 +147,7 @@ public class Pathfinding
         public void SetCost(int cost)
         {
             this.cost = cost;
-            //this.FreeCache();
         }
-
-        /*public void FreeCache()
-        {
-            this.cache.Clear();
-            foreach (var node in neighbours)
-            {
-                node.FreeCache();
-            }
-        }*/
 
         public LinkedList<Vector3> FindPathTo(Node end)
         {
@@ -185,6 +175,9 @@ public class Pathfinding
                 {
                     foreach (var neighbour in currentNode.neighbours)
                     {
+                        if (neighbour.cost >= 100)
+                            continue;
+
                         int tentative_g_score = g_score[currentNode] + RealDistance(currentNode, neighbour);
 
                         if (closedSet.Contains(neighbour))
@@ -351,7 +344,7 @@ public class Pathfinding
             if (right < Length && A[right].Key < A[smallest].Key)
                 smallest = right;
 
-            if (smallest != index)
+            while (smallest != index)
             {
                 indexes[A[index].Value.Id] = smallest;
                 indexes[A[smallest].Value.Id] = index;
@@ -360,7 +353,17 @@ public class Pathfinding
                 A[index] = A[smallest];
                 A[smallest] = tmp;
 
-                MinHeapify(smallest);
+                index = smallest;
+
+                left = 2 * index + 1;
+                right = left + 1;
+
+                if (left < Length && A[left].Key < (A[index].Key))
+                    smallest = left;
+                else
+                    smallest = index;
+                if (right < Length && A[right].Key < A[smallest].Key)
+                    smallest = right;
             }
         }
     }

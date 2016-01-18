@@ -6,29 +6,30 @@ using System.Linq;
 
 public class MapGenerator : MonoBehaviour
 {
+    const int MAX_DIM = 5000;
 
     #region variables
-    [Range(0, 1000)]
+    [Range(0, MAX_DIM)]
     public int width = 50;
-    [Range(0, 1000)]
+    [Range(0, MAX_DIM)]
     public int height = 50;
     [Range(0, 100)]
     public float fillPercentage = 50;
     [Range(0, 10)]
     public int smoothAmount = 5;
-    [Range(0, 10)]
+    [Range(0, MAX_DIM / 10)]
     public int borderSize = 3;
-    [Range(0, 100)]
+    [Range(0, MAX_DIM * MAX_DIM / 10)]
     public int smallestWallRegion = 30;
-    [Range(0, 100)]
+    [Range(0, MAX_DIM * MAX_DIM / 10)]
     public int smallestRoomRegion = 30;
-    [Range(1, 5)]
+    [Range(1, 50)]
     public int passagewayRadius = 2;
     [Range(1, 100)]
     public float squareSize = 1;
     [Range(1, 100)]
     public float wallHeight = 5;
-    [Range(0, 10)]
+    [Range(0, MAX_DIM / 20)]
     public int spawnPointNumber = 3;
     public string seed;
     public bool randomSeed;
@@ -56,12 +57,10 @@ public class MapGenerator : MonoBehaviour
         map = new int[width, height];
         RandomFillMap();
 
-        time = AudioSettings.dspTime; 
         for (int i = 0; i < smoothAmount; i++)
 		{
 		    SmoothMap();	 
 		}
-        Debug.Log("Time for SmoothMap = " + (AudioSettings.dspTime - time) * 1000);
 
         time = AudioSettings.dspTime;
         ProcessMap();
@@ -69,7 +68,6 @@ public class MapGenerator : MonoBehaviour
         
         int[,] borderedMap = new int[width + borderSize * 2, height + borderSize * 2];
 
-        time = AudioSettings.dspTime;
         for (int x = 0; x < borderedMap.GetLength(0); x++)
         {
             for (int y = 0; y < borderedMap.GetLength(1); y++)
@@ -80,7 +78,6 @@ public class MapGenerator : MonoBehaviour
                     borderedMap[x, y] = 1;
             }
         }
-        Debug.Log("Time for BorderMap = " + (AudioSettings.dspTime - time) * 1000);
 
         time = AudioSettings.dspTime;
         MeshGenerator meshGen = GetComponent<MeshGenerator>();
@@ -453,6 +450,9 @@ public class MapGenerator : MonoBehaviour
         Transform ceiling = transform.FindChild("Ceiling");
         Transform floor = transform.FindChild("Floor");
 
+        ceiling.GetComponent<MeshRenderer>().sharedMaterial.mainTextureScale = new Vector2(width / 10f, height / 10f);
+        floor.GetComponent<MeshRenderer>().sharedMaterial.mainTextureScale = new Vector2(width / 10f, height / 10f);
+
         ceiling.localScale = new Vector3((width + 2 * borderSize) / 10.0f, 1, (height + 2 * borderSize) / 10.0f) * squareSize;
         floor.localScale = new Vector3((width + 2 * borderSize) / 10.0f, 1, (height + 2 * borderSize) / 10.0f) * squareSize;
 
@@ -600,7 +600,7 @@ public class MapGenerator : MonoBehaviour
             Debug.Log(tileB.tileX + ", " + tileB.tileY);
 
         GameObject wall = Instantiate(spawnpointWall, pos, rot) as GameObject;
-        wall.transform.parent = transform;
+        wall.transform.parent = transform.FindChild("SpawnpointWalls");
         wall.transform.localScale = new Vector3(0.01f, wallHeight, 3 * passagewayRadius * squareSize); 
     }
 
@@ -611,6 +611,7 @@ public class MapGenerator : MonoBehaviour
 
     public class Room : IComparable<Room>
     {
+        #region variables
         public List<Coord> tiles;
         public List<Coord> edgeTiles;
         public List<Room> connectedRooms;
@@ -618,6 +619,7 @@ public class MapGenerator : MonoBehaviour
         public int size;
         public bool isAccessibleFromMainRoom;
         public bool isMainRoom;
+        #endregion
 
         public Room() { }
 
@@ -633,6 +635,7 @@ public class MapGenerator : MonoBehaviour
 
             int randomAdd = 0;
             int randomAddModulo = Mathf.CeilToInt(2 * Mathf.Sqrt(mapGen.smallestRoomRegion));
+
             foreach (var tile in tiles)
             {
                 bool edgeTileAdded = false;
@@ -705,8 +708,10 @@ public class MapGenerator : MonoBehaviour
 
     public struct Coord
     {
+        #region variables
         public int tileX;
         public int tileY;
+        #endregion
 
         public Coord(int tileX, int tileY)
         {
@@ -727,9 +732,11 @@ public class MapGenerator : MonoBehaviour
 
     public class Passage
     {
+        #region variables
         public Coord startTile;
         public Coord endTile;
         public List<Coord> tiles;
+        #endregion
 
         public Passage(Coord start, Coord end, List<Coord> tiles)
         {
